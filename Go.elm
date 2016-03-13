@@ -9,12 +9,12 @@
       a "rocking" of the stone when its placed?
       a "ripple" of neighbor stones as they're bumped?
     Add online multiplayer over websockets
+    Add hover ghost stone
+    Add most recent stone marker
+    Add territory calculator
 
   Optimizations:
-    Don't do redundant tree searching
-      "isLegalCapture" will be doing the same traversal that "placeStone" does;
-      can memoize this
-    Use Sets better for unique group neighbors
+    Use Sets better for unique group neighbors (also unique territory counting)
 -}
 
 module Go where
@@ -51,17 +51,20 @@ type Stone = BlackStone | WhiteStone | Liberty
 
 type alias Board = Matrix Stone
 
+type alias Group = List Location
+
 type alias Model =
   {
     board : Board
   , currentPlayer : Player
+  , currentMove : Int
   , whiteCaptures : Int
   , blackCaptures : Int
   }
 
 initialBoard = Matrix.square 19 (\_ -> Liberty)
 
-initialModel = Model initialBoard Black 0 0
+initialModel = Model initialBoard Black 1 0 0
 
 
 {------------- UPDATE -------------}
@@ -75,13 +78,17 @@ update : Action -> Model -> (Model, Effects.Effects Action)
 update action model =
   case action of
     Move location ->
-      attemptMove model location
+      ( attemptMove model location
+      , Effects.none
+      )
     Reset ->
-      ( initialModel, Effects.none )
+      ( initialModel
+      , Effects.none
+      )
 
 
 {-| Get all neighboring locations -}
-getNeighborLocations : Location -> List Location
+getNeighborLocations : Location -> Group
 getNeighborLocations location =
   [ (row location - 1, col location)
   , (row location + 1, col location)
@@ -112,21 +119,33 @@ isLiberty location board =
     or an immediate legal capture (ie: not illegal ko) is possible,
     then the move is played and any captures are tallied up.
 -}
-attemptMove : Model -> Location -> (Model, Effects.Effects Action)
+attemptMove : Model -> Location -> Model
 attemptMove model location =
   let
     stone = case model.currentPlayer of
       White -> WhiteStone
       Black -> BlackStone
 
-    hypotheticalBoard = Matrix.set location stone model.board
+    hypotheticalBoard =
+      Matrix.set location stone model.board
 
-    hypotheticalGroup = getGroupFromLocation location hypotheticalBoard []
+    hypotheticalGroup =
+      getGroupFromLocation location hypotheticalBoard []
+
+    hypotheticalCaptures =
+      getLegalCaptures location hypotheticalBoard model.currentPlayer
+
+    blackCaptures =
+      if model.currentPlayer == White then 0 else List.length hypotheticalCaptures
+    whiteCaptures =
+      if model.currentPlayer == Black then 0 else List.length hypotheticalCaptures
 
     isLegalMove =
-      doesGroupHaveLiberties hypotheticalGroup hypotheticalBoard
-      -- @TODO
-      --|| isLegalCapture location hypotheticalBoard model.currentPlayer []
+      Matrix.get location model.board == Just Liberty
+      && (
+        doesGroupHaveLiberties hypotheticalGroup hypotheticalBoard
+        || (not <| List.isEmpty hypotheticalCaptures)
+      )
 
     currentPlayer =
       if isLegalMove then
@@ -140,34 +159,36 @@ attemptMove model location =
 
     updatedModel =
       if isLegalMove then
-        let (newBoard, newBlackCaptures, newWhiteCaptures) =
-          placeStone location model.currentPlayer model.board
+        let
+          newBoard =
+            captureStones hypotheticalBoard hypotheticalCaptures
         in
           { model
           | board = newBoard
           , currentPlayer = currentPlayer
-          , blackCaptures = model.blackCaptures + newBlackCaptures
-          , whiteCaptures = model.whiteCaptures + newWhiteCaptures
+          , currentMove = model.currentMove + 1
+          , blackCaptures = model.blackCaptures + blackCaptures
+          , whiteCaptures = model.whiteCaptures + whiteCaptures
           }
       else
         model
 
   in
-    ( updatedModel
-      , Effects.none
-    )
+    updatedModel
 
 
 {-| Get the group of stones connected to the stone at a location
   (including the stone at the location itself)
+
+  Can also be used to get a list of connected Liberties, e.g. for territory counting
 -}
-getGroupFromLocation : Location -> Board -> List Location -> List Location
+getGroupFromLocation : Location -> Board -> Group -> Group
 getGroupFromLocation location board inspected =
   let
     friendlyStone =
       case getStoneAt location board of
         Nothing ->
-          Liberty -- @TODO should bail early in this case
+          Liberty
         Just stone ->
           stone
 
@@ -195,7 +216,7 @@ getGroupFromLocation location board inspected =
 {-| Does this group have any liberties in its neighbors?
     @TODO perhaps use sets
 -}
-doesGroupHaveLiberties : List Location -> Board -> Bool
+doesGroupHaveLiberties : Group -> Board -> Bool
 doesGroupHaveLiberties group board =
   let
     groupNeighbors =
@@ -208,14 +229,12 @@ doesGroupHaveLiberties group board =
     ) groupNeighbors
 
 
-{-| Actually place the stone.
+{-| Check if playing at a location would cause a legal capture of any enemy neighbor stones
 
-  If a capture is possible, find all locations that would be removed,
-  and return the new board position and the count of removed stones.
-
+  @TODO If a ko has just been taken, it may not be retaken immediately
 -}
-placeStone : Location -> Player -> Board -> (Matrix Stone, Int, Int)
-placeStone location player board =
+getLegalCaptures : Location -> Board -> Player -> Group
+getLegalCaptures location board player =
   let
     stone = case player of
       White -> WhiteStone
@@ -245,28 +264,24 @@ placeStone location player board =
       List.filter (\enemyGroup ->
         not <| doesGroupHaveLiberties enemyGroup newBoard
       ) enemyGroups
-    -- @TODO doublecheck that these arent the same groups
-        --|> Set.fromList
-        --|> Set.toList
-
-    enemyCaptures = log "all enemy captures" (
+  in
+    log "all enemy captures" (
       List.concatMap (\group -> group) enemyGroupsWithoutLiberties
+      |> Set.fromList
+      |> Set.toList
     )
 
-    blackCaptures = if player == White then 0 else List.length enemyCaptures
-    whiteCaptures = if player == Black then 0 else List.length enemyCaptures
+{-| Capture stones on the board.
 
-  in
-    -- flatten the list of captured locations and set all of those matrix locations to empty
-    -- and increment prisoners accordingly
-    (,,)
-      (
-        List.foldl (\capturedLocation matrix ->
-          Matrix.set capturedLocation Liberty matrix
-        ) newBoard enemyCaptures
-      )
-      blackCaptures
-      whiteCaptures
+  If a capture is possible, find all locations that would be removed,
+  and return the new board position
+
+-}
+captureStones : Board -> Group -> Board
+captureStones board captures =
+  List.foldl (\capturedLocation matrix ->
+    Matrix.set capturedLocation Liberty matrix
+  ) board captures
 
 
 {------------- VIEW -------------}
@@ -350,7 +365,7 @@ boardStyle =
   , ("height", "570px")
   , ("padding", "5px")
   , ("margin", "10px")
-  , ("background", "#ff9900")
+  , ("background", "#dfbe48")
   ]
 pointStyle =
   [ ("width", "30px")
