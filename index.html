@@ -11036,34 +11036,6 @@ Elm.Go.make = function (_elm) {
                             ,{ctor: "_Tuple2",_0: "position",_1: "relative"}
                             ,{ctor: "_Tuple2",_0: "float",_1: "left"}
                             ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
-   var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "570px"}
-                            ,{ctor: "_Tuple2",_0: "height",_1: "570px"}
-                            ,{ctor: "_Tuple2",_0: "padding",_1: "5px"}
-                            ,{ctor: "_Tuple2",_0: "margin",_1: "10px"}
-                            ,{ctor: "_Tuple2",_0: "background",_1: "#dfbe48"}]);
-   var drawPointLines = function (location) {
-      var isStarPoint = A2($List.member,
-      location,
-      _U.list([{ctor: "_Tuple2",_0: 3,_1: 3}
-              ,{ctor: "_Tuple2",_0: 3,_1: 9}
-              ,{ctor: "_Tuple2",_0: 3,_1: 15}
-              ,{ctor: "_Tuple2",_0: 9,_1: 3}
-              ,{ctor: "_Tuple2",_0: 9,_1: 9}
-              ,{ctor: "_Tuple2",_0: 9,_1: 15}
-              ,{ctor: "_Tuple2",_0: 15,_1: 3}
-              ,{ctor: "_Tuple2",_0: 15,_1: 9}
-              ,{ctor: "_Tuple2",_0: 15,_1: 15}]));
-      var isWestEdge = _U.eq($Matrix.col(location),18);
-      var isSouthEdge = _U.eq($Matrix.col(location),0);
-      var isEastEdge = _U.eq($Matrix.row(location),18);
-      var isNorthEdge = _U.eq($Matrix.row(location),0);
-      return _U.list([A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isNorthEdge) ? northLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isEastEdge) ? southLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isSouthEdge) ? westLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isWestEdge) ? eastLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style(isStarPoint ? starPointStyle : _U.list([]))]),_U.list([]))]);
-   };
-   var getLocationFromIndex = function (index) {    return {ctor: "_Tuple2",_0: index / 19 | 0,_1: A2($Basics._op["%"],index,19)};};
    var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
       return _U.list([{ctor: "_Tuple2",_0: $Matrix.row(location) - 1,_1: $Matrix.col(location)}
@@ -11073,45 +11045,8 @@ Elm.Go.make = function (_elm) {
    };
    var Reset = {ctor: "Reset"};
    var Move = function (a) {    return {ctor: "Move",_0: a};};
-   var viewPoint = F3(function (address,stone,location) {
-      return A2($Html.div,
-      _U.list([$Html$Attributes.style(pointStyle),A2($Html$Events.onClick,address,Move(location))]),
-      A2($List.append,
-      drawPointLines(location),
-      _U.list([function () {
-         var _p0 = stone;
-         switch (_p0.ctor)
-         {case "BlackStone": return A2($Html.div,
-              _U.list([$Html$Attributes.style(stoneStyle)]),
-              _U.list([$Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"))]));
-            case "WhiteStone": var _p1 = location;
-              var y = _p1._0;
-              var x = _p1._1;
-              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
-              return A2($Html.div,
-              _U.list([$Html$Attributes.style(stoneStyle)]),
-              _U.list([$Html.fromElement(A3($Graphics$Element.image,
-              32,
-              32,
-              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))))]));
-            default: return $Html.text("");}
-      }()])));
-   });
-   var view = F2(function (address,model) {
-      return A2($Html.div,
-      _U.list([]),
-      _U.list([A2($Html.h3,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(model.currentPlayer),"\'s move"))]))
-              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(model.whiteCaptures)))]))
-              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(model.blackCaptures)))]))
-              ,A2($Html.div,_U.list([]),_U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset)]),_U.list([$Html.text("New game")]))]))
-              ,A2($Html.hr,_U.list([]),_U.list([]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.style(boardStyle)]),
-              A2($List.indexedMap,F2(function (i,stone) {    return A3(viewPoint,address,stone,getLocationFromIndex(i));}),$Matrix.flatten(model.board)))]));
-   });
-   var Model = F5(function (a,b,c,d,e) {    return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e};});
+   var Model = F6(function (a,b,c,d,e,f) {    return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e,previousBoards: f};});
    var Liberty = {ctor: "Liberty"};
-   var initialBoard = A2($Matrix.square,19,function (_p2) {    return Liberty;});
    var isLiberty = F2(function (location,board) {    return _U.eq(A2(getStoneAt,location,board),$Maybe.Just(Liberty));});
    var doesGroupHaveLiberties = F2(function (group,board) {
       var groupNeighbors = A2($List.concatMap,function (stoneLocation) {    return getNeighborLocations(stoneLocation);},group);
@@ -11121,11 +11056,11 @@ Elm.Go.make = function (_elm) {
       var nextInspected = A2($List._op["::"],location,inspected);
       var allNeighbors = getNeighborLocations(location);
       var friendlyStone = function () {
-         var _p3 = A2(getStoneAt,location,board);
-         if (_p3.ctor === "Nothing") {
+         var _p0 = A2(getStoneAt,location,board);
+         if (_p0.ctor === "Nothing") {
                return Liberty;
             } else {
-               return _p3._0;
+               return _p0._0;
             }
       }();
       var isUnvisitedFriendlyNeighbor = function (neighborLocation) {
@@ -11143,11 +11078,10 @@ Elm.Go.make = function (_elm) {
    var BlackStone = {ctor: "BlackStone"};
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
-   var initialModel = A5(Model,initialBoard,Black,1,0,0);
-   var getLegalCaptures = F3(function (location,board,player) {
+   var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
       var neighbors = getNeighborLocations(location);
-      var stone = function () {    var _p4 = player;if (_p4.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var stone = function () {    var _p1 = player;if (_p1.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
       var newBoard = A3($Matrix.set,location,stone,board);
       var enemyNeighbors = A2($List.filter,
       function (neighborLocation) {
@@ -11165,51 +11099,115 @@ Elm.Go.make = function (_elm) {
       $Set.toList($Set.fromList(A2($List.concatMap,function (group) {    return group;},enemyGroupsWithoutLiberties))));
    });
    var attemptMove = F2(function (model,location) {
-      var stone = function () {    var _p5 = model.currentPlayer;if (_p5.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var stone = function () {    var _p2 = model.currentPlayer;if (_p2.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
       var hypotheticalBoard = A3($Matrix.set,location,stone,model.board);
       var hypotheticalGroup = A3(getGroupFromLocation,location,hypotheticalBoard,_U.list([]));
-      var hypotheticalCaptures = A3(getLegalCaptures,location,hypotheticalBoard,model.currentPlayer);
+      var hypotheticalCaptures = A3(getCaptures,location,hypotheticalBoard,model.currentPlayer);
+      var hypotheticalBoardAfterCapture = A2(captureStones,hypotheticalBoard,hypotheticalCaptures);
       var blackCaptures = _U.eq(model.currentPlayer,White) ? 0 : $List.length(hypotheticalCaptures);
       var whiteCaptures = _U.eq(model.currentPlayer,Black) ? 0 : $List.length(hypotheticalCaptures);
-      var isLegalMove = _U.eq(A2($Matrix.get,location,model.board),$Maybe.Just(Liberty)) && (A2(doesGroupHaveLiberties,
-      hypotheticalGroup,
-      hypotheticalBoard) || $Basics.not($List.isEmpty(hypotheticalCaptures)));
+      var isLegalMove = _U.eq(A2($Matrix.get,location,model.board),$Maybe.Just(Liberty)) && ($Basics.not(A2($List.member,
+      hypotheticalBoardAfterCapture,
+      model.previousBoards)) && (A2(doesGroupHaveLiberties,hypotheticalGroup,hypotheticalBoard) || $Basics.not($List.isEmpty(hypotheticalCaptures))));
       var currentPlayer = function () {
          if (isLegalMove) {
-               var _p6 = model.currentPlayer;
-               if (_p6.ctor === "White") {
+               var _p3 = model.currentPlayer;
+               if (_p3.ctor === "White") {
                      return Black;
                   } else {
                      return White;
                   }
             } else return model.currentPlayer;
       }();
-      var updatedModel = function () {
-         if (isLegalMove) {
-               var newBoard = A2(captureStones,hypotheticalBoard,hypotheticalCaptures);
-               return _U.update(model,
-               {board: newBoard
-               ,currentPlayer: currentPlayer
-               ,currentMove: model.currentMove + 1
-               ,blackCaptures: model.blackCaptures + blackCaptures
-               ,whiteCaptures: model.whiteCaptures + whiteCaptures});
-            } else return model;
-      }();
+      var updatedModel = isLegalMove ? _U.update(model,
+      {board: hypotheticalBoardAfterCapture
+      ,currentPlayer: currentPlayer
+      ,currentMove: model.currentMove + 1
+      ,blackCaptures: model.blackCaptures + blackCaptures
+      ,whiteCaptures: model.whiteCaptures + whiteCaptures
+      ,previousBoards: A2($List._op["::"],hypotheticalBoardAfterCapture,model.previousBoards)}) : model;
       return updatedModel;
    });
+   var boardSize = 19;
+   var initialBoard = A2($Matrix.square,boardSize,function (_p4) {    return Liberty;});
+   var initialModel = A6(Model,initialBoard,Black,1,0,0,_U.list([]));
    var update = F2(function (action,model) {
-      var _p7 = action;
-      if (_p7.ctor === "Move") {
-            return {ctor: "_Tuple2",_0: A2(attemptMove,model,_p7._0),_1: $Effects.none};
+      var _p5 = action;
+      if (_p5.ctor === "Move") {
+            return {ctor: "_Tuple2",_0: A2(attemptMove,model,_p5._0),_1: $Effects.none};
          } else {
             return {ctor: "_Tuple2",_0: initialModel,_1: $Effects.none};
          }
+   });
+   var getLocationFromIndex = function (index) {    return {ctor: "_Tuple2",_0: index / boardSize | 0,_1: A2($Basics._op["%"],index,boardSize)};};
+   var drawPointLines = function (location) {
+      var isStarPoint = A2($List.member,
+      location,
+      _U.list([{ctor: "_Tuple2",_0: 3,_1: 3}
+              ,{ctor: "_Tuple2",_0: 3,_1: 9}
+              ,{ctor: "_Tuple2",_0: 3,_1: 15}
+              ,{ctor: "_Tuple2",_0: 9,_1: 3}
+              ,{ctor: "_Tuple2",_0: 9,_1: 9}
+              ,{ctor: "_Tuple2",_0: 9,_1: 15}
+              ,{ctor: "_Tuple2",_0: 15,_1: 3}
+              ,{ctor: "_Tuple2",_0: 15,_1: 9}
+              ,{ctor: "_Tuple2",_0: 15,_1: 15}]));
+      var isWestEdge = _U.eq($Matrix.col(location),boardSize - 1);
+      var isSouthEdge = _U.eq($Matrix.col(location),0);
+      var isEastEdge = _U.eq($Matrix.row(location),boardSize - 1);
+      var isNorthEdge = _U.eq($Matrix.row(location),0);
+      return _U.list([A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isNorthEdge) ? northLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isEastEdge) ? southLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isSouthEdge) ? westLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isWestEdge) ? eastLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style(isStarPoint ? starPointStyle : _U.list([]))]),_U.list([]))]);
+   };
+   var viewPoint = F3(function (address,stone,location) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.style(pointStyle),A2($Html$Events.onClick,address,Move(location))]),
+      A2($List.append,
+      drawPointLines(location),
+      _U.list([A2($Html.div,
+      _U.list([$Html$Attributes.style(stoneStyle)]),
+      _U.list([function () {
+         var _p6 = stone;
+         switch (_p6.ctor)
+         {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"));
+            case "WhiteStone": var _p7 = location;
+              var y = _p7._0;
+              var x = _p7._1;
+              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
+              return $Html.fromElement(A3($Graphics$Element.image,
+              32,
+              32,
+              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))));
+            default: return $Html.text("");}
+      }()]))])));
+   });
+   var boardDimensions = $Basics.toString(boardSize * 30);
+   var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],boardDimensions,"px")}
+                            ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],boardDimensions,"px")}
+                            ,{ctor: "_Tuple2",_0: "padding",_1: "5px"}
+                            ,{ctor: "_Tuple2",_0: "margin",_1: "10px"}
+                            ,{ctor: "_Tuple2",_0: "background",_1: "#dfbe48"}]);
+   var view = F2(function (address,model) {
+      return A2($Html.div,
+      _U.list([]),
+      _U.list([A2($Html.h3,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(model.currentPlayer),"\'s move"))]))
+              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(model.whiteCaptures)))]))
+              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(model.blackCaptures)))]))
+              ,A2($Html.div,_U.list([]),_U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset)]),_U.list([$Html.text("New game")]))]))
+              ,A2($Html.hr,_U.list([]),_U.list([]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.style(boardStyle)]),
+              A2($List.indexedMap,F2(function (i,stone) {    return A3(viewPoint,address,stone,getLocationFromIndex(i));}),$Matrix.flatten(model.board)))]));
    });
    var app = $StartApp.start({init: {ctor: "_Tuple2",_0: initialModel,_1: $Effects.none},update: update,view: view,inputs: _U.list([])});
    var main = app.html;
    return _elm.Go.values = {_op: _op
                            ,app: app
                            ,main: main
+                           ,boardSize: boardSize
                            ,Black: Black
                            ,White: White
                            ,BlackStone: BlackStone
@@ -11227,12 +11225,13 @@ Elm.Go.make = function (_elm) {
                            ,attemptMove: attemptMove
                            ,getGroupFromLocation: getGroupFromLocation
                            ,doesGroupHaveLiberties: doesGroupHaveLiberties
-                           ,getLegalCaptures: getLegalCaptures
+                           ,getCaptures: getCaptures
                            ,captureStones: captureStones
                            ,view: view
                            ,getLocationFromIndex: getLocationFromIndex
                            ,drawPointLines: drawPointLines
                            ,viewPoint: viewPoint
+                           ,boardDimensions: boardDimensions
                            ,boardStyle: boardStyle
                            ,pointStyle: pointStyle
                            ,stoneStyle: stoneStyle
