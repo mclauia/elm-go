@@ -45,6 +45,8 @@ main = app.html
 
 {------------- MODEL -------------}
 
+boardSize = 19
+
 type Player = Black | White
 
 type Stone = BlackStone | WhiteStone | Liberty
@@ -60,11 +62,12 @@ type alias Model =
   , currentMove : Int
   , whiteCaptures : Int
   , blackCaptures : Int
+  , previousBoards : List Board
   }
 
-initialBoard = Matrix.square 19 (\_ -> Liberty)
+initialBoard = Matrix.square boardSize (\_ -> Liberty)
 
-initialModel = Model initialBoard Black 1 0 0
+initialModel = Model initialBoard Black 1 0 0 []
 
 
 {------------- UPDATE -------------}
@@ -119,6 +122,7 @@ isLiberty location board =
     or an immediate legal capture (ie: not illegal ko) is possible,
     then the move is played and any captures are tallied up.
 -}
+
 attemptMove : Model -> Location -> Model
 attemptMove model location =
   let
@@ -132,8 +136,11 @@ attemptMove model location =
     hypotheticalGroup =
       getGroupFromLocation location hypotheticalBoard []
 
+    hypotheticalBoardAfterCapture =
+      captureStones hypotheticalBoard hypotheticalCaptures
+
     hypotheticalCaptures =
-      getLegalCaptures location hypotheticalBoard model.currentPlayer
+      getCaptures location hypotheticalBoard model.currentPlayer
 
     blackCaptures =
       if model.currentPlayer == White then 0 else List.length hypotheticalCaptures
@@ -141,7 +148,11 @@ attemptMove model location =
       if model.currentPlayer == Black then 0 else List.length hypotheticalCaptures
 
     isLegalMove =
+      -- is this even a free space
       Matrix.get location model.board == Just Liberty
+      -- has this board position been seen before
+      && (not <| List.member hypotheticalBoardAfterCapture model.previousBoards)
+      -- would the potential stone's group have liberties OR result in a capture
       && (
         doesGroupHaveLiberties hypotheticalGroup hypotheticalBoard
         || (not <| List.isEmpty hypotheticalCaptures)
@@ -159,17 +170,14 @@ attemptMove model location =
 
     updatedModel =
       if isLegalMove then
-        let
-          newBoard =
-            captureStones hypotheticalBoard hypotheticalCaptures
-        in
-          { model
-          | board = newBoard
-          , currentPlayer = currentPlayer
-          , currentMove = model.currentMove + 1
-          , blackCaptures = model.blackCaptures + blackCaptures
-          , whiteCaptures = model.whiteCaptures + whiteCaptures
-          }
+        { model
+        | board = hypotheticalBoardAfterCapture
+        , currentPlayer = currentPlayer
+        , currentMove = model.currentMove + 1
+        , blackCaptures = model.blackCaptures + blackCaptures
+        , whiteCaptures = model.whiteCaptures + whiteCaptures
+        , previousBoards = hypotheticalBoardAfterCapture :: model.previousBoards
+        }
       else
         model
 
@@ -233,8 +241,8 @@ doesGroupHaveLiberties group board =
 
   @TODO If a ko has just been taken, it may not be retaken immediately
 -}
-getLegalCaptures : Location -> Board -> Player -> Group
-getLegalCaptures location board player =
+getCaptures : Location -> Board -> Player -> Group
+getCaptures location board player =
   let
     stone = case player of
       White -> WhiteStone
@@ -306,16 +314,16 @@ view address model =
 
 getLocationFromIndex : Int -> Location
 getLocationFromIndex index =
-  (index // 19, index % 19)
+  (index // boardSize, index % boardSize)
 
 
 drawPointLines : Location -> List Html
 drawPointLines location =
   let
     isNorthEdge = row location == 0
-    isEastEdge = row location == 18
+    isEastEdge = row location == boardSize - 1
     isSouthEdge = col location == 0
-    isWestEdge = col location == 18
+    isWestEdge = col location == boardSize - 1
     isStarPoint = List.member location
       [ (3, 3), (3, 9), (3, 15)
       , (9, 3), (9, 9), (9, 15)
@@ -336,33 +344,32 @@ viewPoint address stone location =
     , onClick address (Move location)
   ] (List.append
     (drawPointLines location)
-    [ case stone of
-      -- stone images credit https://github.com/zpmorgan/gostones-render
-      BlackStone ->
-        div [ style stoneStyle ] [
+    [ div [ style stoneStyle ] [
+      case stone of
+        -- stone images credit https://github.com/zpmorgan/gostones-render
+        BlackStone ->
           image 32 32 "imgs/b.png"
             |> fromElement
-        ]
-      WhiteStone ->
-        let
-          (y, x) = location
-          whiteStoneNum = ((y^2 * x^2) % 15) + 1
-        in
-          div [ style stoneStyle ] [
+        WhiteStone ->
+          let
+            (y, x) = location
+            whiteStoneNum = ((y^2 * x^2) % 15) + 1
+          in
             image 32 32 ("imgs/w" ++ (toString whiteStoneNum) ++ ".png")
               |> fromElement
-          ]
-      Liberty ->
-        text ""
+        _ ->
+          text ""
+      ]
     ]
   )
 
 
 {------------- STYLES -------------}
 
+boardDimensions = toString (boardSize * 30)
 boardStyle =
-  [ ("width", "570px")
-  , ("height", "570px")
+  [ ("width", boardDimensions ++ "px")
+  , ("height", boardDimensions ++ "px")
   , ("padding", "5px")
   , ("margin", "10px")
   , ("background", "#dfbe48")
