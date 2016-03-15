@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "A simple Go game client",
-    "repository": "https://github.com/mclauia/elm-go.git",
+    "repository": "https://github.com/mclauia/elm-goban.git",
     "license": "GPLv2",
     "source-directories": [
         "."

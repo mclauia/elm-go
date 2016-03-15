@@ -397,7 +397,7 @@ viewSidePane address model =
     [ hr [] []
     , p [] [
       a [
-        href "https://github.com/mclauia/elm-go"
+        href "https://github.com/mclauia/elm-goban"
       ] [ text "Project source" ] ]
     ]
   )
