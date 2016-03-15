@@ -1,0 +1,87 @@
+button {
+  border: 1px solid #ccc;
+  background: white;
+  padding: 5px 10px;
+  text-align: center;
+  border-radius: 3px;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.point {
+  width: 30px;
+  height: 30px;
+  position: relative;
+  float: left;
+  cursor: pointer;
+}
+
+.stone {
+  position: absolute;
+  margin-left: -1px;
+  margin-top: -1px;
+}
+
+.north {
+  position: absolute;
+  height: 14px;
+  width: 0px;
+  border: 1px solid black;
+  left: 14px;
+  top: 0;
+}
+.south {
+  position: absolute;
+  height: 14px;
+  width: 0px;
+  border: 1px solid black;
+  left: 14px;
+  bottom: 0;
+}
+
+.west {
+  position: absolute;
+  height: 0px;
+  width: 14px;
+  border: 1px solid black;
+  left: 0;
+  top: 14px;
+}
+
+.east {
+  position: absolute;
+  height: 0px;
+  width: 14px;
+  border: 1px solid black;
+  right: 0;
+  top: 14px;
+}
+
+.starPoint {
+  position: absolute;
+  height: 8px;
+  width: 8px;
+  border-radius: 3px;
+  background: black;
+  left: 11px;
+  top: 11px;
+}
+
+.sidePanel {
+  float: right;
+  margin-left: 20px;
+  padding-left: 20px;
+  width: 400px;
+}
+
+.board {
+  padding: 5px;
+  margin: 10px;
+  background: #dfbe48;
+  float: left;
+}
+
+.clear {
+  clear: both;
+}

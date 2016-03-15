@@ -2,8 +2,7 @@
   A simple offline Go client
 
   Todos:
-    Draw board with SVG? Or as collage?
-    Add a match clock (with overtime rules)
+    Add overtime rules
     Add sounds
     Add animations
       a "rocking" of the stone when its placed?
@@ -19,17 +18,21 @@
 
 module Go where
 
+-- Lib modules
 import Array
 import Debug exposing (log)
 import Effects
 import Graphics.Element exposing (image)
-import Html exposing (button, div, h1, h2, h3, h4, text, Html, fromElement)
+import Html exposing (a, button, div, hr, h1, h2, h3, h4, p, text, Html, fromElement)
 import Html.Events exposing (onClick)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (class, href, style)
 import List exposing (..)
 import Matrix exposing (Matrix, Location, loc, row, col)
 import Set exposing (Set)
 import Time exposing (Time, every, second)
+
+-- App modules
+import Utils exposing (toMmSs)
 
 
 {------------- RUN -------------}
@@ -359,15 +362,16 @@ removeStonesFromBoard captures board =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div [ style [("width", "1040px")] ]
-  [ viewBoard address model
-  , viewSidePane address model
-  ]
+  div
+    [ style [ ("width", "1040px") ] ]
+    [ viewBoard address model
+    , viewSidePane address model
+    ]
 
 
 viewBoard : Signal.Address Action -> Model -> Html
 viewBoard address model =
-  div [ style (boardStyle model.boardSize) ]
+  div [ class "board", style (boardStyle model.boardSize) ]
     (
       model.board
         |> Matrix.flatten
@@ -379,84 +383,87 @@ viewBoard address model =
 
 viewSidePane : Signal.Address Action -> Model -> Html
 viewSidePane address model =
-  div [ style sidePaneStyle ]
-    [ h1 [] [ text "Elm Goban" ]
-    , h3
-      [ style [
-        ("float", if model.currentPlayer == Black then "left" else "right")
-      ] ]
-      [ text (toString model.currentPlayer ++ "'s move") ]
-    , div [ style clearBoth ]
-      [ h4
-        [ style (blackTimeStyle model.blackSecondsRemaining) ]
-        [ text ("black time: " ++ toMmSs model.blackSecondsRemaining) ]
-      , h4
-        [ style (whiteTimeStyle model.whiteSecondsRemaining) ]
-        [ text ("white time: " ++ toMmSs model.whiteSecondsRemaining) ]
-      ]
-    , div [ style clearBoth ]
-      [ h4
-        [ style [ ("float","left") ] ]
-        [ text ("black captures: " ++ toString model.blackCaptures) ]
-      , h4
-        [ style [ ("float","right") ] ]
-        [ text ("white captures: " ++ toString model.whiteCaptures) ]
-      ]
-    , div [ style clearBoth ] [
-      button [
-        onClick address (TogglePause),
-        append buttonStyle (
-          if isEndOfGame model then
-            [ ("display", "none") ]
-          else
-            []
-        )
-          |> style
-      ] [ text (
-        if model.isClockPaused then
-          "Resume game"
-        else
-          "Pause game"
-        ) ] ]
-    , div [] [
-      button [
-        onClick address (Reset 19),
-        style buttonStyle
-      ] [ text "New 19x19 game" ] ]
-    , div [] [
-      button [
-        onClick address (Reset 13),
-        style buttonStyle
-      ] [ text "New 13x13 game" ] ]
-    , div [] [
-      button [
-        onClick address (Reset 9),
-        style buttonStyle
-      ] [ text "New 9x9 game" ] ]
+  div [ class "sidePanel" ] (
+    [ h1 [] [ text "Elm Goban" ] ]
+    ++
+    [ viewCurrentPlayer model.currentPlayer ]
+    ++
+    [ viewClock model.blackSecondsRemaining model.whiteSecondsRemaining ]
+    ++
+    [ viewCaptures model.blackCaptures model.whiteCaptures ]
+    ++
+    [ viewButtons address (isEndOfGame model) model.isClockPaused ]
+    ++
+    [ hr [] []
+    , p [] [
+      a [
+        href "https://github.com/mclauia/elm-go"
+      ] [ text "Project source" ] ]
+    ]
+  )
+
+
+viewCurrentPlayer : Player -> Html
+viewCurrentPlayer currentPlayer =
+  h3
+    [ style [
+      ("float", if currentPlayer == Black then "left" else "right")
+    ] ]
+    [ text (toString currentPlayer ++ "'s move") ]
+
+
+viewClock : Int -> Int -> Html
+viewClock blackTime whiteTime =
+  div [ class "clear" ]
+    [ h4
+      [ style (blackTimeStyle blackTime) ]
+      [ text ("black time: " ++ toMmSs blackTime) ]
+    , h4
+      [ style (whiteTimeStyle whiteTime) ]
+      [ text ("white time: " ++ toMmSs whiteTime) ]
     ]
 
 
-toMmSs : Int -> String
-toMmSs seconds =
-  let
-    minutes =
-      seconds // 60
-        |> toString
+viewCaptures : Int -> Int -> Html
+viewCaptures blackCaptures whiteCaptures =
+  div [ class "clear" ]
+    [ h4
+      [ style [ ("float","left") ] ]
+      [ text ("black captures: " ++ toString blackCaptures) ]
+    , h4
+      [ style [ ("float","right") ] ]
+      [ text ("white captures: " ++ toString whiteCaptures) ]
+    ]
 
-    remainder =
-      seconds % 60
 
-    remainderStr =
-      remainder
-        |> toString
-
-    remainderStrZeroed =
-      if remainder < 10 then
-        "0" ++ remainderStr
-      else
-        remainderStr
-  in
-    minutes ++ ":" ++ remainderStrZeroed
+viewButtons : Signal.Address Action -> Bool -> Bool -> Html
+viewButtons address gameOver isClockPaused =
+  div [ class "clear" ]
+    [
+      button [
+        onClick address (TogglePause),
+        style (if gameOver then
+          [ ("visibility", "hidden") ]
+        else
+          [])
+      ]
+      [ text (
+        if isClockPaused then
+          "Resume game"
+        else
+          "Pause game"
+        )
+      ]
+    , button [
+        onClick address (Reset 19)
+      ] [ text "New 19x19 game" ]
+    , button [
+        onClick address (Reset 13)
+      ] [ text "New 13x13 game" ]
+    , button [
+        onClick address (Reset 9)
+      ] [ text "New 9x9 game" ]
+    ]
 
 
 getLocationFromIndex : Int -> Int -> Location
@@ -472,11 +479,11 @@ drawPointLines location boardSize =
     isSouthEdge = col location == 0
     isWestEdge = col location == boardSize - 1
   in
-    [ div [ style (if not isNorthEdge then northLineStyle else []) ] []
-    , div [ style (if not isEastEdge then southLineStyle else []) ] []
-    , div [ style (if not isSouthEdge then westLineStyle else []) ] []
-    , div [ style (if not isWestEdge then eastLineStyle else []) ] []
-    , div [ style (if isStarPoint location boardSize then starPointStyle else []) ] []
+    [ div [ class (if not isNorthEdge then "north" else "") ] []
+    , div [ class (if not isEastEdge then "south" else "") ] []
+    , div [ class (if not isSouthEdge then "west" else "") ] []
+    , div [ class (if not isWestEdge then "east" else "") ] []
+    , div [ class (if isStarPoint location boardSize then "starPoint" else "") ] []
     ]
 
 
@@ -503,11 +510,11 @@ isStarPoint location boardSize =
 
 viewPoint : Signal.Address Action -> Stone -> Location -> Int -> Html
 viewPoint address stone location boardSize =
-  div [ style pointStyle
+  div [ class "point"
     , onClick address (Move location)
   ] (List.append
     (drawPointLines location boardSize)
-    [ div [ style stoneStyle ] [
+    [ div [ class "stone" ] [
       case stone of
         -- stone images credit https://github.com/zpmorgan/gostones-render
         BlackStone ->
@@ -535,17 +542,6 @@ boardStyle : Int -> List Style
 boardStyle boardSize =
   [ ("width", ((boardDimensions boardSize) ++ "px"))
   , ("height", ((boardDimensions boardSize) ++ "px"))
-  , ("padding", "5px")
-  , ("margin", "10px")
-  , ("background", "#dfbe48")
-  , ("float", "left")
-  ]
-
-sidePaneStyle =
-  [ ("float", "right")
-  , ("margin-left", "20px")
-  , ("padding-left", "20px")
-  , ("width", "400px")
   ]
 
 blackTimeStyle : Int -> List Style
@@ -559,74 +555,3 @@ whiteTimeStyle timeLeft =
   [ ("float","right")
   , ("color", if timeLeft > 0 then "black" else "red")
   ]
-
-buttonStyle =
-  [ ("border", "1px solid #ccc")
-  , ("background", "white")
-  , ("padding", "5px 10px")
-  , ("text-align", "center")
-  , ("border-radius", "3px")
-  , ("font-size", "1.2em")
-  , ("cursor", "pointer")
-  , ("margin-bottom", "5px")
-  ]
-
-pointStyle =
-  [ ("width", "30px")
-  , ("height", "30px")
-  , ("position", "relative")
-  , ("float", "left")
-  , ("cursor", "pointer")
-  ]
-
-stoneStyle =
-  [ ("position", "absolute")
-  , ("margin-left", "-1px")
-  , ("margin-top", "-1px")
-  ]
-
-northLineStyle =
-  [ ("position", "absolute")
-  , ("height", "14px")
-  , ("width", "0px")
-  , ("border", "1px solid black")
-  , ("left", "14px")
-  , ("top", "0")
-  ]
-southLineStyle =
-  [ ("position", "absolute")
-  , ("height", "14px")
-  , ("width", "0px")
-  , ("border", "1px solid black")
-  , ("left", "14px")
-  , ("bottom", "0")
-  ]
-westLineStyle =
-  [ ("position", "absolute")
-  , ("height", "0px")
-  , ("width", "14px")
-  , ("border", "1px solid black")
-  , ("left", "0")
-  , ("top", "14px")
-  ]
-eastLineStyle =
-  [ ("position", "absolute")
-  , ("height", "0px")
-  , ("width", "14px")
-  , ("border", "1px solid black")
-  , ("right", "0")
-  , ("top", "14px")
-  ]
-
-starPointStyle =
-  [ ("position", "absolute")
-  , ("height", "8px")
-  , ("width", "8px")
-  , ("border-radius", "3px")
-  , ("background", "black")
-  , ("left", "11px")
-  , ("top", "11px")
-  ]
-
-clearBoth =
-  [ ("clear", "both") ]
