@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "summary": "A simple Go game client",
+    "summary": "A simple Go board made out of Elm",
     "repository": "https://github.com/mclauia/elm-goban.git",
     "license": "GPLv2",
     "source-directories": [
