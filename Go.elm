@@ -19,29 +19,40 @@
 
 module Go where
 
-import List exposing (..)
+import Array
+import Debug exposing (log)
+import Effects
+import Graphics.Element exposing (image)
 import Html exposing (button, div, h1, h2, h3, h4, text, Html, fromElement)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (style)
-import Graphics.Element exposing (image)
+import List exposing (..)
 import Matrix exposing (Matrix, Location, loc, row, col)
-import StartApp
-import Effects
-import Debug exposing (log)
 import Set exposing (Set)
-import Array
+import Time exposing (Time, every, second)
 
 
 {------------- RUN -------------}
 
-app = StartApp.start
-  { init = ( initialModel 19, Effects.none )
-  , update = update
-  , view = view
-  , inputs = []
-  }
+main : Signal Html
+main =
+  let
+    actions =
+      Signal.mailbox NoOp
 
-main = app.html
+    inputs =
+      Signal.mergeMany
+        [ actions.signal
+        , (Signal.map Tick (every second))
+        ]
+
+    state = initialModel 19
+
+    model =
+      Signal.foldp update state inputs
+  in
+    Signal.map (view actions.address) model
+
 
 
 {------------- MODEL -------------}
@@ -54,6 +65,8 @@ type alias Board = Matrix Stone
 
 type alias Group = List Location
 
+type alias Style = (String, String)
+
 type alias Model =
   { boardSize : Int
   , board : Board
@@ -62,13 +75,16 @@ type alias Model =
   , whiteCaptures : Int
   , blackCaptures : Int
   , previousBoards : List Board
+  , blackSecondsRemaining : Int
+  , whiteSecondsRemaining : Int
+  , isClockPaused : Bool
   }
 
 initialBoard boardSize =
   Matrix.square boardSize (\_ -> Liberty)
 
 initialModel boardSize =
-  Model boardSize (initialBoard boardSize) Black 1 0 0 []
+  Model boardSize (initialBoard boardSize) Black 1 0 0 [] 180 180 False
 
 
 {------------- UPDATE -------------}
@@ -76,19 +92,62 @@ initialModel boardSize =
 type Action =
   Move Location
   | Reset Int
+  | Tick Time
+  | TogglePause
+  | NoOp
 
 
-update : Action -> Model -> (Model, Effects.Effects Action)
+update : Action -> Model -> Model
 update action model =
   case action of
     Move location ->
-      ( attemptMove model location
-      , Effects.none
-      )
+      if model.isClockPaused || isEndOfGame model then
+        model
+      else
+        attemptMove model location
     Reset boardSize ->
-      ( initialModel boardSize
-      , Effects.none
-      )
+      initialModel boardSize
+    Tick time ->
+      if model.isClockPaused then
+        model
+      else
+        decrementTime model
+    TogglePause ->
+      { model
+        | isClockPaused = not model.isClockPaused
+      }
+    NoOp ->
+      model
+
+
+isEndOfGame model =
+  model.blackSecondsRemaining == 0 || model.whiteSecondsRemaining == 0
+
+
+decrementTime model =
+  let
+    blackSecondsRemaining =
+      if not (isEndOfGame model) && model.currentPlayer == Black then
+        model.blackSecondsRemaining - 1
+      else
+        model.blackSecondsRemaining
+
+    whiteSecondsRemaining =
+      if not (isEndOfGame model) && model.currentPlayer == White then
+        model.whiteSecondsRemaining - 1
+      else
+        model.whiteSecondsRemaining
+
+    updatedModel =
+      { model
+        | blackSecondsRemaining = blackSecondsRemaining
+        , whiteSecondsRemaining = whiteSecondsRemaining
+      }
+
+  in
+    { updatedModel
+      | isClockPaused = isEndOfGame updatedModel
+    }
 
 
 {-| Get all neighboring locations -}
@@ -143,9 +202,15 @@ attemptMove model location =
       getCaptures location potentialBoard model.currentPlayer
 
     blackCaptures =
-      if model.currentPlayer == White then 0 else length potentialCaptures
+      if model.currentPlayer == White then
+        0
+      else
+        length potentialCaptures
     whiteCaptures =
-      if model.currentPlayer == Black then 0 else length potentialCaptures
+      if model.currentPlayer == Black then
+        0
+      else
+        length potentialCaptures
 
     isLegalMove =
       -- is this even a free space
@@ -168,12 +233,12 @@ attemptMove model location =
     updatedModel =
       if isLegalMove then
         { model
-        | board = potentialBoardAfterCapture
-        , currentPlayer = nextPlayer
-        , currentMove = model.currentMove + 1
-        , blackCaptures = model.blackCaptures + blackCaptures
-        , whiteCaptures = model.whiteCaptures + whiteCaptures
-        , previousBoards = model.board :: model.previousBoards
+          | board = potentialBoardAfterCapture
+          , currentPlayer = nextPlayer
+          , currentMove = model.currentMove + 1
+          , blackCaptures = model.blackCaptures + blackCaptures
+          , whiteCaptures = model.whiteCaptures + whiteCaptures
+          , previousBoards = model.board :: model.previousBoards
         }
       else
         model
@@ -249,7 +314,10 @@ getCaptures location board player =
     -- find enemy neighbors
     neighbors = getNeighborLocations location
 
-    enemy = if player == Black then WhiteStone else BlackStone
+    enemy = if player == Black then
+        WhiteStone
+      else
+        BlackStone
 
     enemyNeighbors =
       filter (\neighborLocation ->
@@ -291,7 +359,7 @@ removeStonesFromBoard captures board =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div [ style [("width", "940px")] ]
+  div [ style [("width", "1040px")] ]
   [ viewBoard address model
   , viewSidePane address model
   ]
@@ -313,13 +381,43 @@ viewSidePane : Signal.Address Action -> Model -> Html
 viewSidePane address model =
   div [ style sidePaneStyle ]
     [ h1 [] [ text "Elm Goban" ]
-    , h3 [] [ text (toString model.currentPlayer ++ "'s move") ]
-    , h4
-      [ style [ ("float","left") ] ]
-      [ text ("black captures: " ++ toString model.blackCaptures) ]
-    , h4
-      [ style [ ("float","right") ] ]
-      [ text ("white captures: " ++ toString model.whiteCaptures) ]
+    , h3
+      [ style [
+        ("float", if model.currentPlayer == Black then "left" else "right")
+      ] ]
+      [ text (toString model.currentPlayer ++ "'s move") ]
+    , div [ style clearBoth ]
+      [ h4
+        [ style (blackTimeStyle model.blackSecondsRemaining) ]
+        [ text ("black time: " ++ toMmSs model.blackSecondsRemaining) ]
+      , h4
+        [ style (whiteTimeStyle model.whiteSecondsRemaining) ]
+        [ text ("white time: " ++ toMmSs model.whiteSecondsRemaining) ]
+      ]
+    , div [ style clearBoth ]
+      [ h4
+        [ style [ ("float","left") ] ]
+        [ text ("black captures: " ++ toString model.blackCaptures) ]
+      , h4
+        [ style [ ("float","right") ] ]
+        [ text ("white captures: " ++ toString model.whiteCaptures) ]
+      ]
+    , div [ style clearBoth ] [
+      button [
+        onClick address (TogglePause),
+        append buttonStyle (
+          if isEndOfGame model then
+            [ ("display", "none") ]
+          else
+            []
+        )
+          |> style
+      ] [ text (
+        if model.isClockPaused then
+          "Resume game"
+        else
+          "Pause game"
+        ) ] ]
     , div [] [
       button [
         onClick address (Reset 19),
@@ -336,6 +434,29 @@ viewSidePane address model =
         style buttonStyle
       ] [ text "New 9x9 game" ] ]
     ]
+
+
+toMmSs : Int -> String
+toMmSs seconds =
+  let
+    minutes =
+      seconds // 60
+        |> toString
+
+    remainder =
+      seconds % 60
+
+    remainderStr =
+      remainder
+        |> toString
+
+    remainderStrZeroed =
+      if remainder < 10 then
+        "0" ++ remainderStr
+      else
+        remainderStr
+  in
+    minutes ++ ":" ++ remainderStrZeroed
 
 
 getLocationFromIndex : Int -> Int -> Location
@@ -410,7 +531,7 @@ viewPoint address stone location boardSize =
 boardDimensions : Int -> String
 boardDimensions boardSize = toString (boardSize * 30)
 
-boardStyle : Int -> List (String, String)
+boardStyle : Int -> List Style
 boardStyle boardSize =
   [ ("width", ((boardDimensions boardSize) ++ "px"))
   , ("height", ((boardDimensions boardSize) ++ "px"))
@@ -424,7 +545,19 @@ sidePaneStyle =
   [ ("float", "right")
   , ("margin-left", "20px")
   , ("padding-left", "20px")
-  , ("width", "300px")
+  , ("width", "400px")
+  ]
+
+blackTimeStyle : Int -> List Style
+blackTimeStyle timeLeft =
+  [ ("float","left")
+  , ("color", if timeLeft > 0 then "black" else "red")
+  ]
+
+whiteTimeStyle : Int -> List Style
+whiteTimeStyle timeLeft =
+  [ ("float","right")
+  , ("color", if timeLeft > 0 then "black" else "red")
   ]
 
 buttonStyle =
@@ -462,7 +595,7 @@ northLineStyle =
   ]
 southLineStyle =
   [ ("position", "absolute")
-  , ("height", fda"14px")
+  , ("height", "14px")
   , ("width", "0px")
   , ("border", "1px solid black")
   , ("left", "14px")
@@ -494,3 +627,6 @@ starPointStyle =
   , ("left", "11px")
   , ("top", "11px")
   ]
+
+clearBoth =
+  [ ("clear", "both") ]
