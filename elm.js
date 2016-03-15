@@ -11065,7 +11065,7 @@ Elm.Go.make = function (_elm) {
       _U.list([A2($Html.hr,_U.list([]),_U.list([]))
               ,A2($Html.p,
               _U.list([]),
-              _U.list([A2($Html.a,_U.list([$Html$Attributes.href("https://github.com/mclauia/elm-go")]),_U.list([$Html.text("Project source")]))]))])))))));
+              _U.list([A2($Html.a,_U.list([$Html$Attributes.href("https://github.com/mclauia/elm-goban")]),_U.list([$Html.text("Project source")]))]))])))))));
    });
    var view = F2(function (address,model) {
       return A2($Html.div,
