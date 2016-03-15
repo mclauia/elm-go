@@ -440,29 +440,37 @@ viewButtons : Signal.Address Action -> Bool -> Bool -> Html
 viewButtons address gameOver isClockPaused =
   div [ class "clear" ]
     [
-      button [
-        onClick address (TogglePause),
-        style (if gameOver then
-          [ ("visibility", "hidden") ]
-        else
-          [])
+      div [] [
+        button [
+          onClick address (TogglePause),
+          style (if gameOver then
+            [ ("visibility", "hidden") ]
+          else
+            [])
+        ]
+        [ text (
+          if isClockPaused then
+            "Resume game"
+          else
+            "Pause game"
+          )
+        ]
       ]
-      [ text (
-        if isClockPaused then
-          "Resume game"
-        else
-          "Pause game"
-        )
-      ]
-    , button [
-        onClick address (Reset 19)
-      ] [ text "New 19x19 game" ]
-    , button [
-        onClick address (Reset 13)
-      ] [ text "New 13x13 game" ]
-    , button [
-        onClick address (Reset 9)
-      ] [ text "New 9x9 game" ]
+    , div [] [
+        button [
+            onClick address (Reset 19)
+          ] [ text "New 19x19 game" ]
+        ]
+    , div [] [
+        button [
+            onClick address (Reset 13)
+          ] [ text "New 13x13 game" ]
+        ]
+    , div [] [
+        button [
+            onClick address (Reset 9)
+          ] [ text "New 9x9 game" ]
+        ]
     ]
 
 

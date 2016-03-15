@@ -10878,13 +10878,21 @@ Elm.Go.make = function (_elm) {
    var viewButtons = F3(function (address,gameOver,isClockPaused) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("clear")]),
-      _U.list([A2($Html.button,
+      _U.list([A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,
               _U.list([A2($Html$Events.onClick,address,TogglePause)
                       ,$Html$Attributes.style(gameOver ? _U.list([{ctor: "_Tuple2",_0: "visibility",_1: "hidden"}]) : _U.list([]))]),
-              _U.list([$Html.text(isClockPaused ? "Resume game" : "Pause game")]))
-              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(19))]),_U.list([$Html.text("New 19x19 game")]))
-              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(13))]),_U.list([$Html.text("New 13x13 game")]))
-              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(9))]),_U.list([$Html.text("New 9x9 game")]))]));
+              _U.list([$Html.text(isClockPaused ? "Resume game" : "Pause game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(19))]),_U.list([$Html.text("New 19x19 game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(13))]),_U.list([$Html.text("New 13x13 game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(9))]),_U.list([$Html.text("New 9x9 game")]))]))]));
    });
    var Move = function (a) {    return {ctor: "Move",_0: a};};
    var viewPoint = F4(function (address,stone,location,boardSize) {
