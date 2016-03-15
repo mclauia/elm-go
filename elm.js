@@ -10853,15 +10853,33 @@ Elm.Go.make = function (_elm) {
               _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
               _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
    });
-   var viewClock = F2(function (blackTime,whiteTime) {
+   var viewClock = F2(function (blackClock,whiteClock) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("clear")]),
-      _U.list([A2($Html.h4,
-              _U.list([$Html$Attributes.style(blackTimeStyle(blackTime))]),
-              _U.list([$Html.text(A2($Basics._op["++"],"black time: ",$Utils.toMmSs(blackTime)))]))
-              ,A2($Html.h4,
-              _U.list([$Html$Attributes.style(whiteTimeStyle(whiteTime))]),
-              _U.list([$Html.text(A2($Basics._op["++"],"white time: ",$Utils.toMmSs(whiteTime)))]))]));
+      _U.list([A2($Html.div,
+              _U.list([$Html$Attributes.$class("clear")]),
+              _U.list([A2($Html.p,
+                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.secondsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black time: ",$Utils.toMmSs(blackClock.secondsRemaining)))]))
+                      ,A2($Html.p,
+                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.secondsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white time: ",$Utils.toMmSs(whiteClock.secondsRemaining)))]))]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.$class("clear")]),
+              _U.list([A2($Html.p,
+                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.overtimeRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black overtime: ",$Utils.toMmSs(blackClock.overtimeRemaining)))]))
+                      ,A2($Html.p,
+                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.overtimeRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white overtime: ",$Utils.toMmSs(whiteClock.overtimeRemaining)))]))]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.$class("clear")]),
+              _U.list([A2($Html.p,
+                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.periodsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black periods: ",$Basics.toString(blackClock.periodsRemaining)))]))
+                      ,A2($Html.p,
+                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.periodsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white periods: ",$Basics.toString(whiteClock.periodsRemaining)))]))]))]));
    });
    var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
@@ -10870,7 +10888,8 @@ Elm.Go.make = function (_elm) {
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) + 1}
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) - 1}]);
    };
-   var isEndOfGame = function (model) {    return _U.eq(model.blackSecondsRemaining,0) || _U.eq(model.whiteSecondsRemaining,0);};
+   var isOutOfTime = function (clock) {    return _U.eq(clock.secondsRemaining,0) && _U.eq(clock.periodsRemaining,0);};
+   var isEndOfGame = function (model) {    return isOutOfTime(model.blackClock) || isOutOfTime(model.whiteClock);};
    var NoOp = {ctor: "NoOp"};
    var TogglePause = {ctor: "TogglePause"};
    var Tick = function (a) {    return {ctor: "Tick",_0: a};};
@@ -10924,6 +10943,16 @@ Elm.Go.make = function (_elm) {
       F2(function (i,stone) {    return A4(viewPoint,address,stone,A2(getLocationFromIndex,i,model.boardSize),model.boardSize);}),
       $Matrix.flatten(model.board)));
    });
+   var initialOvertimePeriods = 3;
+   var initialOvertime = 30;
+   var getUpdatedClock = function (clock) {
+      var isPlayerInOvertime = _U.eq(clock.secondsRemaining,0) && _U.cmp(clock.periodsRemaining,0) > 0;
+      var secondsRemaining = $Basics.not(isPlayerInOvertime) ? clock.secondsRemaining - 1 : clock.secondsRemaining;
+      var overtimeRemaining = isPlayerInOvertime ? _U.eq(clock.overtimeRemaining,0) ? initialOvertime : clock.overtimeRemaining - 1 : clock.overtimeRemaining;
+      var periodsRemaining = _U.eq(overtimeRemaining,0) ? clock.periodsRemaining - 1 : clock.periodsRemaining;
+      return _U.update(clock,{secondsRemaining: secondsRemaining,overtimeRemaining: overtimeRemaining,periodsRemaining: periodsRemaining});
+   };
+   var initialTime = 180;
    var Model = function (a) {
       return function (b) {
          return function (c) {
@@ -10941,8 +10970,8 @@ Elm.Go.make = function (_elm) {
                                         ,whiteCaptures: e
                                         ,blackCaptures: f
                                         ,previousBoards: g
-                                        ,blackSecondsRemaining: h
-                                        ,whiteSecondsRemaining: i
+                                        ,blackClock: h
+                                        ,whiteClock: i
                                         ,isClockPaused: j};
                               };
                            };
@@ -10954,6 +10983,8 @@ Elm.Go.make = function (_elm) {
          };
       };
    };
+   var Clock = F3(function (a,b,c) {    return {secondsRemaining: a,overtimeRemaining: b,periodsRemaining: c};});
+   var initialClock = A3(Clock,initialTime,initialOvertime,initialOvertimePeriods);
    var Liberty = {ctor: "Liberty"};
    var initialBoard = function (boardSize) {    return A2($Matrix.square,boardSize,function (_p3) {    return Liberty;});};
    var isLiberty = F2(function (location,board) {    return _U.eq(A2(getStoneAt,location,board),$Maybe.Just(Liberty));});
@@ -10987,14 +11018,16 @@ Elm.Go.make = function (_elm) {
    var BlackStone = {ctor: "BlackStone"};
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
-   var initialModel = function (boardSize) {    return Model(boardSize)(initialBoard(boardSize))(Black)(1)(0)(0)(_U.list([]))(180)(180)(false);};
+   var initialModel = function (boardSize) {
+      return Model(boardSize)(initialBoard(boardSize))(Black)(1)(0)(0)(_U.list([]))(initialClock)(initialClock)(false);
+   };
    var decrementTime = function (model) {
-      var whiteSecondsRemaining = $Basics.not(isEndOfGame(model)) && _U.eq(model.currentPlayer,
-      White) ? model.whiteSecondsRemaining - 1 : model.whiteSecondsRemaining;
-      var blackSecondsRemaining = $Basics.not(isEndOfGame(model)) && _U.eq(model.currentPlayer,
-      Black) ? model.blackSecondsRemaining - 1 : model.blackSecondsRemaining;
-      var updatedModel = _U.update(model,{blackSecondsRemaining: blackSecondsRemaining,whiteSecondsRemaining: whiteSecondsRemaining});
-      return _U.update(updatedModel,{isClockPaused: isEndOfGame(updatedModel)});
+      if (isEndOfGame(model)) return model; else {
+            var updatedWhiteClock = _U.eq(model.currentPlayer,White) ? getUpdatedClock(model.whiteClock) : model.whiteClock;
+            var updatedBlackClock = _U.eq(model.currentPlayer,Black) ? getUpdatedClock(model.blackClock) : model.blackClock;
+            var updatedModel = _U.update(model,{blackClock: updatedBlackClock,whiteClock: updatedWhiteClock});
+            return _U.update(updatedModel,{isClockPaused: isEndOfGame(updatedModel)});
+         }
    };
    var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
@@ -11057,7 +11090,7 @@ Elm.Go.make = function (_elm) {
       A2($Basics._op["++"],
       _U.list([viewCurrentPlayer(model.currentPlayer)]),
       A2($Basics._op["++"],
-      _U.list([A2(viewClock,model.blackSecondsRemaining,model.whiteSecondsRemaining)]),
+      _U.list([A2(viewClock,model.blackClock,model.whiteClock)]),
       A2($Basics._op["++"],
       _U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)]),
       A2($Basics._op["++"],
@@ -11086,7 +11119,12 @@ Elm.Go.make = function (_elm) {
                            ,BlackStone: BlackStone
                            ,WhiteStone: WhiteStone
                            ,Liberty: Liberty
+                           ,Clock: Clock
                            ,Model: Model
+                           ,initialTime: initialTime
+                           ,initialOvertime: initialOvertime
+                           ,initialOvertimePeriods: initialOvertimePeriods
+                           ,initialClock: initialClock
                            ,initialBoard: initialBoard
                            ,initialModel: initialModel
                            ,Move: Move
@@ -11096,7 +11134,9 @@ Elm.Go.make = function (_elm) {
                            ,NoOp: NoOp
                            ,update: update
                            ,isEndOfGame: isEndOfGame
+                           ,isOutOfTime: isOutOfTime
                            ,decrementTime: decrementTime
+                           ,getUpdatedClock: getUpdatedClock
                            ,getNeighborLocations: getNeighborLocations
                            ,getStoneAt: getStoneAt
                            ,isLiberty: isLiberty
