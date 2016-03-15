@@ -70,6 +70,12 @@ type alias Group = List Location
 
 type alias Style = (String, String)
 
+type alias Clock =
+  { secondsRemaining : Int
+  , overtimeRemaining : Int
+  , periodsRemaining : Int
+  }
+
 type alias Model =
   { boardSize : Int
   , board : Board
@@ -78,16 +84,32 @@ type alias Model =
   , whiteCaptures : Int
   , blackCaptures : Int
   , previousBoards : List Board
-  , blackSecondsRemaining : Int
-  , whiteSecondsRemaining : Int
+  , blackClock : Clock
+  , whiteClock : Clock
   , isClockPaused : Bool
   }
+
+initialTime = 180
+initialOvertime = 30
+initialOvertimePeriods = 3
+
+initialClock = Clock initialTime initialOvertime initialOvertimePeriods
 
 initialBoard boardSize =
   Matrix.square boardSize (\_ -> Liberty)
 
 initialModel boardSize =
-  Model boardSize (initialBoard boardSize) Black 1 0 0 [] 180 180 False
+  Model
+    boardSize
+    (initialBoard boardSize)
+    Black
+    1
+    0
+    0
+    []
+    initialClock
+    initialClock
+    False
 
 
 {------------- UPDATE -------------}
@@ -123,33 +145,76 @@ update action model =
       model
 
 
+isEndOfGame : Model -> Bool
 isEndOfGame model =
-  model.blackSecondsRemaining == 0 || model.whiteSecondsRemaining == 0
+  (isOutOfTime model.blackClock) || (isOutOfTime model.whiteClock)
 
 
+isOutOfTime : Clock -> Bool
+isOutOfTime clock =
+  clock.secondsRemaining == 0 && clock.periodsRemaining == 0
+
+
+decrementTime : Model -> Model
 decrementTime model =
-  let
-    blackSecondsRemaining =
-      if not (isEndOfGame model) && model.currentPlayer == Black then
-        model.blackSecondsRemaining - 1
-      else
-        model.blackSecondsRemaining
+  if isEndOfGame model then
+    model
+  else
+    let
+      updatedBlackClock =
+        if model.currentPlayer == Black then
+          getUpdatedClock model.blackClock
+        else
+          model.blackClock
 
-    whiteSecondsRemaining =
-      if not (isEndOfGame model) && model.currentPlayer == White then
-        model.whiteSecondsRemaining - 1
-      else
-        model.whiteSecondsRemaining
+      updatedWhiteClock =
+        if model.currentPlayer == White then
+          getUpdatedClock model.whiteClock
+        else
+          model.whiteClock
 
-    updatedModel =
-      { model
-        | blackSecondsRemaining = blackSecondsRemaining
-        , whiteSecondsRemaining = whiteSecondsRemaining
+      updatedModel =
+        { model
+          | blackClock = updatedBlackClock
+          , whiteClock = updatedWhiteClock
+        }
+    in
+      { updatedModel
+        | isClockPaused = isEndOfGame updatedModel
       }
 
+
+getUpdatedClock : Clock -> Clock
+getUpdatedClock clock =
+  let
+    isPlayerInOvertime =
+      clock.secondsRemaining == 0 && clock.periodsRemaining > 0
+
+    secondsRemaining =
+      if not isPlayerInOvertime then
+        clock.secondsRemaining - 1
+      else
+        clock.secondsRemaining
+
+    overtimeRemaining =
+      if isPlayerInOvertime then
+        if clock.overtimeRemaining == 0 then
+          initialOvertime
+        else
+          clock.overtimeRemaining - 1
+      else
+        clock.overtimeRemaining
+
+    periodsRemaining =
+      if overtimeRemaining == 0 then
+        clock.periodsRemaining - 1
+      else
+        clock.periodsRemaining
   in
-    { updatedModel
-      | isClockPaused = isEndOfGame updatedModel
+    { clock
+      | secondsRemaining = secondsRemaining
+      , overtimeRemaining = overtimeRemaining
+      , periodsRemaining = periodsRemaining
     }
 
 
@@ -388,7 +453,7 @@ viewSidePane address model =
     ++
     [ viewCurrentPlayer model.currentPlayer ]
     ++
-    [ viewClock model.blackSecondsRemaining model.whiteSecondsRemaining ]
+    [ viewClock model.blackClock model.whiteClock ]
     ++
     [ viewCaptures model.blackCaptures model.whiteCaptures ]
     ++
@@ -412,15 +477,36 @@ viewCurrentPlayer currentPlayer =
     [ text (toString currentPlayer ++ "'s move") ]
 
 
-viewClock : Int -> Int -> Html
-viewClock blackTime whiteTime =
+viewClock : Clock -> Clock -> Html
+viewClock blackClock whiteClock =
   div [ class "clear" ]
-    [ h4
-      [ style (blackTimeStyle blackTime) ]
-      [ text ("black time: " ++ toMmSs blackTime) ]
-    , h4
-      [ style (whiteTimeStyle whiteTime) ]
-      [ text ("white time: " ++ toMmSs whiteTime) ]
+    [ div [ class "clear" ]
+      [
+        p
+        [ style (blackTimeStyle blackClock.secondsRemaining) ]
+        [ text ("black time: " ++ toMmSs blackClock.secondsRemaining) ]
+      , p
+        [ style (whiteTimeStyle whiteClock.secondsRemaining) ]
+        [ text ("white time: " ++ toMmSs whiteClock.secondsRemaining) ]
+      ]
+    , div [ class "clear" ]
+      [
+        p
+        [ style (blackTimeStyle blackClock.overtimeRemaining) ]
+        [ text ("black overtime: " ++ toMmSs blackClock.overtimeRemaining) ]
+      , p
+        [ style (whiteTimeStyle whiteClock.overtimeRemaining) ]
+        [ text ("white overtime: " ++ toMmSs whiteClock.overtimeRemaining) ]
+      ]
+    , div [ class "clear" ]
+      [
+        p
+        [ style (blackTimeStyle blackClock.periodsRemaining) ]
+        [ text ("black periods: " ++ toString blackClock.periodsRemaining) ]
+      , p
+        [ style (whiteTimeStyle whiteClock.periodsRemaining) ]
+        [ text ("white periods: " ++ toString whiteClock.periodsRemaining) ]
+      ]
     ]
 
 

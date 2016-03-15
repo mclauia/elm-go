@@ -1,3 +1,6 @@
+p {
+  margin: 0 0 10px;
+}
 button {
   border: 1px solid #ccc;
   background: white;
