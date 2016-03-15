@@ -19,33 +19,43 @@
 
 module Go where
 
-import Html exposing (button, div, hr, h3, h4, text, Html, fromElement)
+import Array
+import Debug exposing (log)
+import Effects
+import Graphics.Element exposing (image)
+import Html exposing (button, div, h1, h2, h3, h4, text, Html, fromElement)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (style)
-import Graphics.Element exposing (image)
+import List exposing (..)
 import Matrix exposing (Matrix, Location, loc, row, col)
-import StartApp
-import Effects
-import Debug exposing (log)
 import Set exposing (Set)
-import Random
+import Time exposing (Time, every, second)
 
 
 {------------- RUN -------------}
 
-app = StartApp.start
-  { init = ( initialModel, Effects.none )
-  , update = update
-  , view = view
-  , inputs = []
-  }
+main : Signal Html
+main =
+  let
+    actions =
+      Signal.mailbox NoOp
 
-main = app.html
+    inputs =
+      Signal.mergeMany
+        [ actions.signal
+        , (Signal.map Tick (every second))
+        ]
+
+    state = initialModel 19
+
+    model =
+      Signal.foldp update state inputs
+  in
+    Signal.map (view actions.address) model
+
 
 
 {------------- MODEL -------------}
-
-boardSize = 19
 
 type Player = Black | White
 
@@ -55,39 +65,89 @@ type alias Board = Matrix Stone
 
 type alias Group = List Location
 
+type alias Style = (String, String)
+
 type alias Model =
-  {
-    board : Board
+  { boardSize : Int
+  , board : Board
   , currentPlayer : Player
   , currentMove : Int
   , whiteCaptures : Int
   , blackCaptures : Int
   , previousBoards : List Board
+  , blackSecondsRemaining : Int
+  , whiteSecondsRemaining : Int
+  , isClockPaused : Bool
   }
 
-initialBoard = Matrix.square boardSize (\_ -> Liberty)
+initialBoard boardSize =
+  Matrix.square boardSize (\_ -> Liberty)
 
-initialModel = Model initialBoard Black 1 0 0 []
+initialModel boardSize =
+  Model boardSize (initialBoard boardSize) Black 1 0 0 [] 180 180 False
 
 
 {------------- UPDATE -------------}
 
 type Action =
   Move Location
-  | Reset
+  | Reset Int
+  | Tick Time
+  | TogglePause
+  | NoOp
 
 
-update : Action -> Model -> (Model, Effects.Effects Action)
+update : Action -> Model -> Model
 update action model =
   case action of
     Move location ->
-      ( attemptMove model location
-      , Effects.none
-      )
-    Reset ->
-      ( initialModel
-      , Effects.none
-      )
+      if model.isClockPaused || isEndOfGame model then
+        model
+      else
+        attemptMove model location
+    Reset boardSize ->
+      initialModel boardSize
+    Tick time ->
+      if model.isClockPaused then
+        model
+      else
+        decrementTime model
+    TogglePause ->
+      { model
+        | isClockPaused = not model.isClockPaused
+      }
+    NoOp ->
+      model
+
+
+isEndOfGame model =
+  model.blackSecondsRemaining == 0 || model.whiteSecondsRemaining == 0
+
+
+decrementTime model =
+  let
+    blackSecondsRemaining =
+      if not (isEndOfGame model) && model.currentPlayer == Black then
+        model.blackSecondsRemaining - 1
+      else
+        model.blackSecondsRemaining
+
+    whiteSecondsRemaining =
+      if not (isEndOfGame model) && model.currentPlayer == White then
+        model.whiteSecondsRemaining - 1
+      else
+        model.whiteSecondsRemaining
+
+    updatedModel =
+      { model
+        | blackSecondsRemaining = blackSecondsRemaining
+        , whiteSecondsRemaining = whiteSecondsRemaining
+      }
+
+  in
+    { updatedModel
+      | isClockPaused = isEndOfGame updatedModel
+    }
 
 
 {-| Get all neighboring locations -}
@@ -122,7 +182,6 @@ isLiberty location board =
     or an immediate legal capture (ie: not illegal ko) is possible,
     then the move is played and any captures are tallied up.
 -}
-
 attemptMove : Model -> Location -> Model
 attemptMove model location =
   let
@@ -130,53 +189,56 @@ attemptMove model location =
       White -> WhiteStone
       Black -> BlackStone
 
-    hypotheticalBoard =
+    potentialBoard =
       Matrix.set location stone model.board
 
-    hypotheticalGroup =
-      getGroupFromLocation location hypotheticalBoard []
+    potentialGroup =
+      getGroupFromLocation location potentialBoard []
 
-    hypotheticalBoardAfterCapture =
-      captureStones hypotheticalBoard hypotheticalCaptures
+    potentialBoardAfterCapture =
+      removeStonesFromBoard potentialCaptures potentialBoard
 
-    hypotheticalCaptures =
-      getCaptures location hypotheticalBoard model.currentPlayer
+    potentialCaptures =
+      getCaptures location potentialBoard model.currentPlayer
 
     blackCaptures =
-      if model.currentPlayer == White then 0 else List.length hypotheticalCaptures
+      if model.currentPlayer == White then
+        0
+      else
+        length potentialCaptures
     whiteCaptures =
-      if model.currentPlayer == Black then 0 else List.length hypotheticalCaptures
+      if model.currentPlayer == Black then
+        0
+      else
+        length potentialCaptures
 
     isLegalMove =
       -- is this even a free space
       Matrix.get location model.board == Just Liberty
       -- has this board position been seen before
-      && (not <| List.member hypotheticalBoardAfterCapture model.previousBoards)
+      && (not <| member potentialBoardAfterCapture model.previousBoards)
       -- would the potential stone's group have liberties OR result in a capture
       && (
-        doesGroupHaveLiberties hypotheticalGroup hypotheticalBoard
-        || (not <| List.isEmpty hypotheticalCaptures)
+        doesGroupHaveLiberties potentialGroup potentialBoard
+        || (not <| isEmpty potentialCaptures)
       )
 
-    currentPlayer =
-      if isLegalMove then
-        case model.currentPlayer of
-          White ->
-            Black
-          Black ->
-            White
-      else
-        model.currentPlayer
+    nextPlayer =
+      case model.currentPlayer of
+        White ->
+          Black
+        Black ->
+          White
 
     updatedModel =
       if isLegalMove then
         { model
-        | board = hypotheticalBoardAfterCapture
-        , currentPlayer = currentPlayer
-        , currentMove = model.currentMove + 1
-        , blackCaptures = model.blackCaptures + blackCaptures
-        , whiteCaptures = model.whiteCaptures + whiteCaptures
-        , previousBoards = hypotheticalBoardAfterCapture :: model.previousBoards
+          | board = potentialBoardAfterCapture
+          , currentPlayer = nextPlayer
+          , currentMove = model.currentMove + 1
+          , blackCaptures = model.blackCaptures + blackCaptures
+          , whiteCaptures = model.whiteCaptures + whiteCaptures
+          , previousBoards = model.board :: model.previousBoards
         }
       else
         model
@@ -204,21 +266,21 @@ getGroupFromLocation location board inspected =
 
     isUnvisitedFriendlyNeighbor neighborLocation =
       getStoneAt neighborLocation board == Just friendlyStone
-      && (not <| List.member neighborLocation inspected)
+      && (not <| member neighborLocation inspected)
 
     unvisitedFriendlyNeighbors =
-      List.filter isUnvisitedFriendlyNeighbor allNeighbors
+      filter isUnvisitedFriendlyNeighbor allNeighbors
 
     nextInspected = location :: inspected
 
   in
-    List.concatMap
+    concatMap
       (\neighborLocation ->
         -- continue searching for friendly neighbors recursively
         getGroupFromLocation neighborLocation board nextInspected
       )
       unvisitedFriendlyNeighbors
-      |> List.append [ location ]
+      |> append [ location ]
 
 
 {-| Does this group have any liberties in its neighbors?
@@ -228,18 +290,16 @@ doesGroupHaveLiberties : Group -> Board -> Bool
 doesGroupHaveLiberties group board =
   let
     groupNeighbors =
-      List.concatMap (\stoneLocation ->
+      concatMap (\stoneLocation ->
         getNeighborLocations stoneLocation
       ) group
   in
-    List.any (\location ->
+    any (\location ->
       isLiberty location board
     ) groupNeighbors
 
 
 {-| Check if playing at a location would cause a legal capture of any enemy neighbor stones
-
-  @TODO If a ko has just been taken, it may not be retaken immediately
 -}
 getCaptures : Location -> Board -> Player -> Group
 getCaptures location board player =
@@ -254,30 +314,32 @@ getCaptures location board player =
     -- find enemy neighbors
     neighbors = getNeighborLocations location
 
-    enemy = if player == Black then WhiteStone else BlackStone
+    enemy = if player == Black then
+        WhiteStone
+      else
+        BlackStone
 
     enemyNeighbors =
-      List.filter (\neighborLocation ->
+      filter (\neighborLocation ->
         getStoneAt neighborLocation newBoard == Just enemy
       ) neighbors
 
     -- a list of lists
-    enemyGroups = List.map (\neighborLocation ->
+    enemyGroups = map (\neighborLocation ->
       getGroupFromLocation neighborLocation board []
     ) enemyNeighbors
 
     -- for each enemy neighbor group, do they no longer have liberties?
     -- still a list of lists
     enemyGroupsWithoutLiberties =
-      List.filter (\enemyGroup ->
+      filter (\enemyGroup ->
         not <| doesGroupHaveLiberties enemyGroup newBoard
       ) enemyGroups
   in
-    log "all enemy captures" (
-      List.concatMap (\group -> group) enemyGroupsWithoutLiberties
+    concatMap (\group -> group) enemyGroupsWithoutLiberties
       |> Set.fromList
       |> Set.toList
-    )
+
 
 {-| Capture stones on the board.
 
@@ -285,9 +347,9 @@ getCaptures location board player =
   and return the new board position
 
 -}
-captureStones : Board -> Group -> Board
-captureStones board captures =
-  List.foldl (\capturedLocation matrix ->
+removeStonesFromBoard : Group -> Board -> Board
+removeStonesFromBoard captures board =
+  foldl (\capturedLocation matrix ->
     Matrix.set capturedLocation Liberty matrix
   ) board captures
 
@@ -297,53 +359,154 @@ captureStones board captures =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div [] [
-    h3 [] [ text (toString model.currentPlayer ++ "'s move") ]
-  , h4 [] [ text ("white captures: " ++ toString model.whiteCaptures) ]
-  , h4 [] [ text ("black captures: " ++ toString model.blackCaptures) ]
-  , div [] [ button [ onClick address Reset ] [ text "New game" ] ]
-  , hr [] []
-  , div [ style boardStyle ]
-      (
-        model.board
-          |> Matrix.flatten
-          |> List.indexedMap (\i stone -> (viewPoint address stone (getLocationFromIndex i)))
-      )
+  div [ style [("width", "1040px")] ]
+  [ viewBoard address model
+  , viewSidePane address model
   ]
 
 
-getLocationFromIndex : Int -> Location
-getLocationFromIndex index =
+viewBoard : Signal.Address Action -> Model -> Html
+viewBoard address model =
+  div [ style (boardStyle model.boardSize) ]
+    (
+      model.board
+        |> Matrix.flatten
+        |> indexedMap (\i stone ->
+          viewPoint address stone (getLocationFromIndex i model.boardSize) model.boardSize
+        )
+    )
+
+
+viewSidePane : Signal.Address Action -> Model -> Html
+viewSidePane address model =
+  div [ style sidePaneStyle ]
+    [ h1 [] [ text "Elm Goban" ]
+    , h3
+      [ style [
+        ("float", if model.currentPlayer == Black then "left" else "right")
+      ] ]
+      [ text (toString model.currentPlayer ++ "'s move") ]
+    , div [ style clearBoth ]
+      [ h4
+        [ style (blackTimeStyle model.blackSecondsRemaining) ]
+        [ text ("black time: " ++ toMmSs model.blackSecondsRemaining) ]
+      , h4
+        [ style (whiteTimeStyle model.whiteSecondsRemaining) ]
+        [ text ("white time: " ++ toMmSs model.whiteSecondsRemaining) ]
+      ]
+    , div [ style clearBoth ]
+      [ h4
+        [ style [ ("float","left") ] ]
+        [ text ("black captures: " ++ toString model.blackCaptures) ]
+      , h4
+        [ style [ ("float","right") ] ]
+        [ text ("white captures: " ++ toString model.whiteCaptures) ]
+      ]
+    , div [ style clearBoth ] [
+      button [
+        onClick address (TogglePause),
+        append buttonStyle (
+          if isEndOfGame model then
+            [ ("display", "none") ]
+          else
+            []
+        )
+          |> style
+      ] [ text (
+        if model.isClockPaused then
+          "Resume game"
+        else
+          "Pause game"
+        ) ] ]
+    , div [] [
+      button [
+        onClick address (Reset 19),
+        style buttonStyle
+      ] [ text "New 19x19 game" ] ]
+    , div [] [
+      button [
+        onClick address (Reset 13),
+        style buttonStyle
+      ] [ text "New 13x13 game" ] ]
+    , div [] [
+      button [
+        onClick address (Reset 9),
+        style buttonStyle
+      ] [ text "New 9x9 game" ] ]
+    ]
+
+
+toMmSs : Int -> String
+toMmSs seconds =
+  let
+    minutes =
+      seconds // 60
+        |> toString
+
+    remainder =
+      seconds % 60
+
+    remainderStr =
+      remainder
+        |> toString
+
+    remainderStrZeroed =
+      if remainder < 10 then
+        "0" ++ remainderStr
+      else
+        remainderStr
+  in
+    minutes ++ ":" ++ remainderStrZeroed
+
+
+getLocationFromIndex : Int -> Int -> Location
+getLocationFromIndex index boardSize =
   (index // boardSize, index % boardSize)
 
 
-drawPointLines : Location -> List Html
-drawPointLines location =
+drawPointLines : Location -> Int -> List Html
+drawPointLines location boardSize =
   let
     isNorthEdge = row location == 0
     isEastEdge = row location == boardSize - 1
     isSouthEdge = col location == 0
     isWestEdge = col location == boardSize - 1
-    isStarPoint = List.member location
-      [ (3, 3), (3, 9), (3, 15)
-      , (9, 3), (9, 9), (9, 15)
-      , (15, 3), (15, 9), (15, 15)
-      ]
   in
     [ div [ style (if not isNorthEdge then northLineStyle else []) ] []
     , div [ style (if not isEastEdge then southLineStyle else []) ] []
     , div [ style (if not isSouthEdge then westLineStyle else []) ] []
     , div [ style (if not isWestEdge then eastLineStyle else []) ] []
-    , div [ style (if isStarPoint then starPointStyle else []) ] []
+    , div [ style (if isStarPoint location boardSize then starPointStyle else []) ] []
     ]
 
 
-viewPoint : Signal.Address Action -> Stone -> Location -> Html
-viewPoint address stone location =
+isStarPoint : Location -> Int -> Bool
+isStarPoint location boardSize =
+  member location (
+    case boardSize of
+      19 ->
+        [ (3, 3), (3, 9), (3, 15)
+        , (9, 3), (9, 9), (9, 15)
+        , (15, 3), (15, 9), (15, 15)
+        ]
+      13 ->
+        [ (3, 3), (3, 9)
+        , (9, 3), (9, 9)
+        ]
+      9 ->
+        [ (2, 2), (2, 6)
+        , (6, 2), (6, 6)
+        ]
+      _ -> []
+  )
+
+
+viewPoint : Signal.Address Action -> Stone -> Location -> Int -> Html
+viewPoint address stone location boardSize =
   div [ style pointStyle
     , onClick address (Move location)
   ] (List.append
-    (drawPointLines location)
+    (drawPointLines location boardSize)
     [ div [ style stoneStyle ] [
       case stone of
         -- stone images credit https://github.com/zpmorgan/gostones-render
@@ -363,17 +526,51 @@ viewPoint address stone location =
     ]
   )
 
-
 {------------- STYLES -------------}
 
-boardDimensions = toString (boardSize * 30)
-boardStyle =
-  [ ("width", boardDimensions ++ "px")
-  , ("height", boardDimensions ++ "px")
+boardDimensions : Int -> String
+boardDimensions boardSize = toString (boardSize * 30)
+
+boardStyle : Int -> List Style
+boardStyle boardSize =
+  [ ("width", ((boardDimensions boardSize) ++ "px"))
+  , ("height", ((boardDimensions boardSize) ++ "px"))
   , ("padding", "5px")
   , ("margin", "10px")
   , ("background", "#dfbe48")
+  , ("float", "left")
   ]
+
+sidePaneStyle =
+  [ ("float", "right")
+  , ("margin-left", "20px")
+  , ("padding-left", "20px")
+  , ("width", "400px")
+  ]
+
+blackTimeStyle : Int -> List Style
+blackTimeStyle timeLeft =
+  [ ("float","left")
+  , ("color", if timeLeft > 0 then "black" else "red")
+  ]
+
+whiteTimeStyle : Int -> List Style
+whiteTimeStyle timeLeft =
+  [ ("float","right")
+  , ("color", if timeLeft > 0 then "black" else "red")
+  ]
+
+buttonStyle =
+  [ ("border", "1px solid #ccc")
+  , ("background", "white")
+  , ("padding", "5px 10px")
+  , ("text-align", "center")
+  , ("border-radius", "3px")
+  , ("font-size", "1.2em")
+  , ("cursor", "pointer")
+  , ("margin-bottom", "5px")
+  ]
+
 pointStyle =
   [ ("width", "30px")
   , ("height", "30px")
@@ -430,3 +627,6 @@ starPointStyle =
   , ("left", "11px")
   , ("top", "11px")
   ]
+
+clearBoth =
+  [ ("clear", "both") ]
