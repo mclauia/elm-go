@@ -10757,6 +10757,28 @@ Elm.Html.Events.make = function (_elm) {
                                     ,keyCode: keyCode
                                     ,Options: Options};
 };
+Elm.Utils = Elm.Utils || {};
+Elm.Utils.make = function (_elm) {
+   "use strict";
+   _elm.Utils = _elm.Utils || {};
+   if (_elm.Utils.values) return _elm.Utils.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var toMmSs = function (seconds) {
+      var remainder = A2($Basics._op["%"],seconds,60);
+      var remainderStr = $Basics.toString(remainder);
+      var remainderStrZeroed = _U.cmp(remainder,10) < 0 ? A2($Basics._op["++"],"0",remainderStr) : remainderStr;
+      var minutes = $Basics.toString(seconds / 60 | 0);
+      return A2($Basics._op["++"],minutes,A2($Basics._op["++"],":",remainderStrZeroed));
+   };
+   return _elm.Utils.values = {_op: _op,toMmSs: toMmSs};
+};
 Elm.Go = Elm.Go || {};
 Elm.Go.make = function (_elm) {
    "use strict";
@@ -10775,74 +10797,19 @@ Elm.Go.make = function (_elm) {
    $Result = Elm.Result.make(_elm),
    $Set = Elm.Set.make(_elm),
    $Signal = Elm.Signal.make(_elm),
-   $Time = Elm.Time.make(_elm);
+   $Time = Elm.Time.make(_elm),
+   $Utils = Elm.Utils.make(_elm);
    var _op = {};
-   var clearBoth = _U.list([{ctor: "_Tuple2",_0: "clear",_1: "both"}]);
-   var starPointStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                                ,{ctor: "_Tuple2",_0: "height",_1: "8px"}
-                                ,{ctor: "_Tuple2",_0: "width",_1: "8px"}
-                                ,{ctor: "_Tuple2",_0: "border-radius",_1: "3px"}
-                                ,{ctor: "_Tuple2",_0: "background",_1: "black"}
-                                ,{ctor: "_Tuple2",_0: "left",_1: "11px"}
-                                ,{ctor: "_Tuple2",_0: "top",_1: "11px"}]);
-   var eastLineStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                               ,{ctor: "_Tuple2",_0: "height",_1: "0px"}
-                               ,{ctor: "_Tuple2",_0: "width",_1: "14px"}
-                               ,{ctor: "_Tuple2",_0: "border",_1: "1px solid black"}
-                               ,{ctor: "_Tuple2",_0: "right",_1: "0"}
-                               ,{ctor: "_Tuple2",_0: "top",_1: "14px"}]);
-   var westLineStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                               ,{ctor: "_Tuple2",_0: "height",_1: "0px"}
-                               ,{ctor: "_Tuple2",_0: "width",_1: "14px"}
-                               ,{ctor: "_Tuple2",_0: "border",_1: "1px solid black"}
-                               ,{ctor: "_Tuple2",_0: "left",_1: "0"}
-                               ,{ctor: "_Tuple2",_0: "top",_1: "14px"}]);
-   var southLineStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                                ,{ctor: "_Tuple2",_0: "height",_1: "14px"}
-                                ,{ctor: "_Tuple2",_0: "width",_1: "0px"}
-                                ,{ctor: "_Tuple2",_0: "border",_1: "1px solid black"}
-                                ,{ctor: "_Tuple2",_0: "left",_1: "14px"}
-                                ,{ctor: "_Tuple2",_0: "bottom",_1: "0"}]);
-   var northLineStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                                ,{ctor: "_Tuple2",_0: "height",_1: "14px"}
-                                ,{ctor: "_Tuple2",_0: "width",_1: "0px"}
-                                ,{ctor: "_Tuple2",_0: "border",_1: "1px solid black"}
-                                ,{ctor: "_Tuple2",_0: "left",_1: "14px"}
-                                ,{ctor: "_Tuple2",_0: "top",_1: "0"}]);
-   var stoneStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                            ,{ctor: "_Tuple2",_0: "margin-left",_1: "-1px"}
-                            ,{ctor: "_Tuple2",_0: "margin-top",_1: "-1px"}]);
-   var pointStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "30px"}
-                            ,{ctor: "_Tuple2",_0: "height",_1: "30px"}
-                            ,{ctor: "_Tuple2",_0: "position",_1: "relative"}
-                            ,{ctor: "_Tuple2",_0: "float",_1: "left"}
-                            ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
-   var buttonStyle = _U.list([{ctor: "_Tuple2",_0: "border",_1: "1px solid #ccc"}
-                             ,{ctor: "_Tuple2",_0: "background",_1: "white"}
-                             ,{ctor: "_Tuple2",_0: "padding",_1: "5px 10px"}
-                             ,{ctor: "_Tuple2",_0: "text-align",_1: "center"}
-                             ,{ctor: "_Tuple2",_0: "border-radius",_1: "3px"}
-                             ,{ctor: "_Tuple2",_0: "font-size",_1: "1.2em"}
-                             ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}
-                             ,{ctor: "_Tuple2",_0: "margin-bottom",_1: "5px"}]);
    var whiteTimeStyle = function (timeLeft) {
       return _U.list([{ctor: "_Tuple2",_0: "float",_1: "right"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
    };
    var blackTimeStyle = function (timeLeft) {
       return _U.list([{ctor: "_Tuple2",_0: "float",_1: "left"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
    };
-   var sidePaneStyle = _U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}
-                               ,{ctor: "_Tuple2",_0: "margin-left",_1: "20px"}
-                               ,{ctor: "_Tuple2",_0: "padding-left",_1: "20px"}
-                               ,{ctor: "_Tuple2",_0: "width",_1: "400px"}]);
    var boardDimensions = function (boardSize) {    return $Basics.toString(boardSize * 30);};
    var boardStyle = function (boardSize) {
       return _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}
-                     ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}
-                     ,{ctor: "_Tuple2",_0: "padding",_1: "5px"}
-                     ,{ctor: "_Tuple2",_0: "margin",_1: "10px"}
-                     ,{ctor: "_Tuple2",_0: "background",_1: "#dfbe48"}
-                     ,{ctor: "_Tuple2",_0: "float",_1: "left"}]);
+                     ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}]);
    };
    var isStarPoint = F2(function (location,boardSize) {
       return A2($List.member,
@@ -10869,20 +10836,33 @@ Elm.Go.make = function (_elm) {
       var isSouthEdge = _U.eq($Matrix.col(location),0);
       var isEastEdge = _U.eq($Matrix.row(location),boardSize - 1);
       var isNorthEdge = _U.eq($Matrix.row(location),0);
-      return _U.list([A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isNorthEdge) ? northLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isEastEdge) ? southLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isSouthEdge) ? westLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isWestEdge) ? eastLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style(A2(isStarPoint,location,boardSize) ? starPointStyle : _U.list([]))]),_U.list([]))]);
+      return _U.list([A2($Html.div,_U.list([$Html$Attributes.$class($Basics.not(isNorthEdge) ? "north" : "")]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.$class($Basics.not(isEastEdge) ? "south" : "")]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.$class($Basics.not(isSouthEdge) ? "west" : "")]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.$class($Basics.not(isWestEdge) ? "east" : "")]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.$class(A2(isStarPoint,location,boardSize) ? "starPoint" : "")]),_U.list([]))]);
    });
    var getLocationFromIndex = F2(function (index,boardSize) {    return {ctor: "_Tuple2",_0: index / boardSize | 0,_1: A2($Basics._op["%"],index,boardSize)};});
-   var toMmSs = function (seconds) {
-      var remainder = A2($Basics._op["%"],seconds,60);
-      var remainderStr = $Basics.toString(remainder);
-      var remainderStrZeroed = _U.cmp(remainder,10) < 0 ? A2($Basics._op["++"],"0",remainderStr) : remainderStr;
-      var minutes = $Basics.toString(seconds / 60 | 0);
-      return A2($Basics._op["++"],minutes,A2($Basics._op["++"],":",remainderStrZeroed));
-   };
+   var viewCaptures = F2(function (blackCaptures,whiteCaptures) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.$class("clear")]),
+      _U.list([A2($Html.h4,
+              _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "left"}]))]),
+              _U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(blackCaptures)))]))
+              ,A2($Html.h4,
+              _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
+              _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
+   });
+   var viewClock = F2(function (blackTime,whiteTime) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.$class("clear")]),
+      _U.list([A2($Html.h4,
+              _U.list([$Html$Attributes.style(blackTimeStyle(blackTime))]),
+              _U.list([$Html.text(A2($Basics._op["++"],"black time: ",$Utils.toMmSs(blackTime)))]))
+              ,A2($Html.h4,
+              _U.list([$Html$Attributes.style(whiteTimeStyle(whiteTime))]),
+              _U.list([$Html.text(A2($Basics._op["++"],"white time: ",$Utils.toMmSs(whiteTime)))]))]));
+   });
    var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
       return _U.list([{ctor: "_Tuple2",_0: $Matrix.row(location) - 1,_1: $Matrix.col(location)}
@@ -10895,14 +10875,25 @@ Elm.Go.make = function (_elm) {
    var TogglePause = {ctor: "TogglePause"};
    var Tick = function (a) {    return {ctor: "Tick",_0: a};};
    var Reset = function (a) {    return {ctor: "Reset",_0: a};};
+   var viewButtons = F3(function (address,gameOver,isClockPaused) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.$class("clear")]),
+      _U.list([A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,TogglePause)
+                      ,$Html$Attributes.style(gameOver ? _U.list([{ctor: "_Tuple2",_0: "visibility",_1: "hidden"}]) : _U.list([]))]),
+              _U.list([$Html.text(isClockPaused ? "Resume game" : "Pause game")]))
+              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(19))]),_U.list([$Html.text("New 19x19 game")]))
+              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(13))]),_U.list([$Html.text("New 13x13 game")]))
+              ,A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(9))]),_U.list([$Html.text("New 9x9 game")]))]));
+   });
    var Move = function (a) {    return {ctor: "Move",_0: a};};
    var viewPoint = F4(function (address,stone,location,boardSize) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.style(pointStyle),A2($Html$Events.onClick,address,Move(location))]),
+      _U.list([$Html$Attributes.$class("point"),A2($Html$Events.onClick,address,Move(location))]),
       A2($List.append,
       A2(drawPointLines,location,boardSize),
       _U.list([A2($Html.div,
-      _U.list([$Html$Attributes.style(stoneStyle)]),
+      _U.list([$Html$Attributes.$class("stone")]),
       _U.list([function () {
          var _p1 = stone;
          switch (_p1.ctor)
@@ -10920,7 +10911,7 @@ Elm.Go.make = function (_elm) {
    });
    var viewBoard = F2(function (address,model) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.style(boardStyle(model.boardSize))]),
+      _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle(model.boardSize))]),
       A2($List.indexedMap,
       F2(function (i,stone) {    return A4(viewPoint,address,stone,A2(getLocationFromIndex,i,model.boardSize),model.boardSize);}),
       $Matrix.flatten(model.board)));
@@ -11045,52 +11036,28 @@ Elm.Go.make = function (_elm) {
          case "TogglePause": return _U.update(model,{isClockPaused: $Basics.not(model.isClockPaused)});
          default: return model;}
    });
+   var viewCurrentPlayer = function (currentPlayer) {
+      return A2($Html.h3,
+      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq(currentPlayer,Black) ? "left" : "right"}]))]),
+      _U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(currentPlayer),"\'s move"))]));
+   };
    var viewSidePane = F2(function (address,model) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.style(sidePaneStyle)]),
-      _U.list([A2($Html.h1,_U.list([]),_U.list([$Html.text("Elm Goban")]))
-              ,A2($Html.h3,
-              _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq(model.currentPlayer,Black) ? "left" : "right"}]))]),
-              _U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(model.currentPlayer),"\'s move"))]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.style(clearBoth)]),
-              _U.list([A2($Html.h4,
-                      _U.list([$Html$Attributes.style(blackTimeStyle(model.blackSecondsRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"black time: ",toMmSs(model.blackSecondsRemaining)))]))
-                      ,A2($Html.h4,
-                      _U.list([$Html$Attributes.style(whiteTimeStyle(model.whiteSecondsRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"white time: ",toMmSs(model.whiteSecondsRemaining)))]))]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.style(clearBoth)]),
-              _U.list([A2($Html.h4,
-                      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "left"}]))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(model.blackCaptures)))]))
-                      ,A2($Html.h4,
-                      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(model.whiteCaptures)))]))]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.style(clearBoth)]),
-              _U.list([A2($Html.button,
-              _U.list([A2($Html$Events.onClick,address,TogglePause)
-                      ,$Html$Attributes.style(A2($List.append,
-                      buttonStyle,
-                      isEndOfGame(model) ? _U.list([{ctor: "_Tuple2",_0: "display",_1: "none"}]) : _U.list([])))]),
-              _U.list([$Html.text(model.isClockPaused ? "Resume game" : "Pause game")]))]))
-              ,A2($Html.div,
+      _U.list([$Html$Attributes.$class("sidePanel")]),
+      A2($Basics._op["++"],
+      _U.list([A2($Html.h1,_U.list([]),_U.list([$Html.text("Elm Goban")]))]),
+      A2($Basics._op["++"],
+      _U.list([viewCurrentPlayer(model.currentPlayer)]),
+      A2($Basics._op["++"],
+      _U.list([A2(viewClock,model.blackSecondsRemaining,model.whiteSecondsRemaining)]),
+      A2($Basics._op["++"],
+      _U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)]),
+      A2($Basics._op["++"],
+      _U.list([A3(viewButtons,address,isEndOfGame(model),model.isClockPaused)]),
+      _U.list([A2($Html.hr,_U.list([]),_U.list([]))
+              ,A2($Html.p,
               _U.list([]),
-              _U.list([A2($Html.button,
-              _U.list([A2($Html$Events.onClick,address,Reset(19)),$Html$Attributes.style(buttonStyle)]),
-              _U.list([$Html.text("New 19x19 game")]))]))
-              ,A2($Html.div,
-              _U.list([]),
-              _U.list([A2($Html.button,
-              _U.list([A2($Html$Events.onClick,address,Reset(13)),$Html$Attributes.style(buttonStyle)]),
-              _U.list([$Html.text("New 13x13 game")]))]))
-              ,A2($Html.div,
-              _U.list([]),
-              _U.list([A2($Html.button,
-              _U.list([A2($Html$Events.onClick,address,Reset(9)),$Html$Attributes.style(buttonStyle)]),
-              _U.list([$Html.text("New 9x9 game")]))]))]));
+              _U.list([A2($Html.a,_U.list([$Html$Attributes.href("https://github.com/mclauia/elm-go")]),_U.list([$Html.text("Project source")]))]))])))))));
    });
    var view = F2(function (address,model) {
       return A2($Html.div,
@@ -11133,23 +11100,16 @@ Elm.Go.make = function (_elm) {
                            ,view: view
                            ,viewBoard: viewBoard
                            ,viewSidePane: viewSidePane
-                           ,toMmSs: toMmSs
+                           ,viewCurrentPlayer: viewCurrentPlayer
+                           ,viewClock: viewClock
+                           ,viewCaptures: viewCaptures
+                           ,viewButtons: viewButtons
                            ,getLocationFromIndex: getLocationFromIndex
                            ,drawPointLines: drawPointLines
                            ,isStarPoint: isStarPoint
                            ,viewPoint: viewPoint
                            ,boardDimensions: boardDimensions
                            ,boardStyle: boardStyle
-                           ,sidePaneStyle: sidePaneStyle
                            ,blackTimeStyle: blackTimeStyle
-                           ,whiteTimeStyle: whiteTimeStyle
-                           ,buttonStyle: buttonStyle
-                           ,pointStyle: pointStyle
-                           ,stoneStyle: stoneStyle
-                           ,northLineStyle: northLineStyle
-                           ,southLineStyle: southLineStyle
-                           ,westLineStyle: westLineStyle
-                           ,eastLineStyle: eastLineStyle
-                           ,starPointStyle: starPointStyle
-                           ,clearBoth: clearBoth};
+                           ,whiteTimeStyle: whiteTimeStyle};
 };
