@@ -6436,232 +6436,6 @@ Elm.Array.make = function (_elm) {
                               ,filter: filter
                               ,foldl: foldl
                               ,foldr: foldr};
-};Elm.Random = Elm.Random || {};
-Elm.Random.make = function (_elm) {
-   "use strict";
-   _elm.Random = _elm.Random || {};
-   if (_elm.Random.values) return _elm.Random.values;
-   var _U = Elm.Native.Utils.make(_elm),$Basics = Elm.Basics.make(_elm),$List = Elm.List.make(_elm);
-   var _op = {};
-   var magicNum8 = 2147483562;
-   var range = function (_p0) {    return {ctor: "_Tuple2",_0: 0,_1: magicNum8};};
-   var magicNum7 = 2137383399;
-   var magicNum6 = 2147483563;
-   var magicNum5 = 3791;
-   var magicNum4 = 40692;
-   var magicNum3 = 52774;
-   var magicNum2 = 12211;
-   var magicNum1 = 53668;
-   var magicNum0 = 40014;
-   var generate = F2(function (_p1,seed) {    var _p2 = _p1;return _p2._0(seed);});
-   var Seed = function (a) {    return {ctor: "Seed",_0: a};};
-   var State = F2(function (a,b) {    return {ctor: "State",_0: a,_1: b};});
-   var initState = function (s$) {
-      var s = A2($Basics.max,s$,0 - s$);
-      var q = s / (magicNum6 - 1) | 0;
-      var s2 = A2($Basics._op["%"],q,magicNum7 - 1);
-      var s1 = A2($Basics._op["%"],s,magicNum6 - 1);
-      return A2(State,s1 + 1,s2 + 1);
-   };
-   var next = function (_p3) {
-      var _p4 = _p3;
-      var _p6 = _p4._1;
-      var _p5 = _p4._0;
-      var k$ = _p6 / magicNum3 | 0;
-      var s2$ = magicNum4 * (_p6 - k$ * magicNum3) - k$ * magicNum5;
-      var s2$$ = _U.cmp(s2$,0) < 0 ? s2$ + magicNum7 : s2$;
-      var k = _p5 / magicNum1 | 0;
-      var s1$ = magicNum0 * (_p5 - k * magicNum1) - k * magicNum2;
-      var s1$$ = _U.cmp(s1$,0) < 0 ? s1$ + magicNum6 : s1$;
-      var z = s1$$ - s2$$;
-      var z$ = _U.cmp(z,1) < 0 ? z + magicNum8 : z;
-      return {ctor: "_Tuple2",_0: z$,_1: A2(State,s1$$,s2$$)};
-   };
-   var split = function (_p7) {
-      var _p8 = _p7;
-      var _p11 = _p8._1;
-      var _p10 = _p8._0;
-      var _p9 = $Basics.snd(next(_p8));
-      var t1 = _p9._0;
-      var t2 = _p9._1;
-      var new_s2 = _U.eq(_p11,1) ? magicNum7 - 1 : _p11 - 1;
-      var new_s1 = _U.eq(_p10,magicNum6 - 1) ? 1 : _p10 + 1;
-      return {ctor: "_Tuple2",_0: A2(State,new_s1,t2),_1: A2(State,t1,new_s2)};
-   };
-   var initialSeed = function (n) {    return Seed({state: initState(n),next: next,split: split,range: range});};
-   var Generator = function (a) {    return {ctor: "Generator",_0: a};};
-   var andThen = F2(function (_p12,callback) {
-      var _p13 = _p12;
-      return Generator(function (seed) {
-         var _p14 = _p13._0(seed);
-         var result = _p14._0;
-         var newSeed = _p14._1;
-         var _p15 = callback(result);
-         var genB = _p15._0;
-         return genB(newSeed);
-      });
-   });
-   var map5 = F6(function (func,_p20,_p19,_p18,_p17,_p16) {
-      var _p21 = _p20;
-      var _p22 = _p19;
-      var _p23 = _p18;
-      var _p24 = _p17;
-      var _p25 = _p16;
-      return Generator(function (seed0) {
-         var _p26 = _p21._0(seed0);
-         var a = _p26._0;
-         var seed1 = _p26._1;
-         var _p27 = _p22._0(seed1);
-         var b = _p27._0;
-         var seed2 = _p27._1;
-         var _p28 = _p23._0(seed2);
-         var c = _p28._0;
-         var seed3 = _p28._1;
-         var _p29 = _p24._0(seed3);
-         var d = _p29._0;
-         var seed4 = _p29._1;
-         var _p30 = _p25._0(seed4);
-         var e = _p30._0;
-         var seed5 = _p30._1;
-         return {ctor: "_Tuple2",_0: A5(func,a,b,c,d,e),_1: seed5};
-      });
-   });
-   var map4 = F5(function (func,_p34,_p33,_p32,_p31) {
-      var _p35 = _p34;
-      var _p36 = _p33;
-      var _p37 = _p32;
-      var _p38 = _p31;
-      return Generator(function (seed0) {
-         var _p39 = _p35._0(seed0);
-         var a = _p39._0;
-         var seed1 = _p39._1;
-         var _p40 = _p36._0(seed1);
-         var b = _p40._0;
-         var seed2 = _p40._1;
-         var _p41 = _p37._0(seed2);
-         var c = _p41._0;
-         var seed3 = _p41._1;
-         var _p42 = _p38._0(seed3);
-         var d = _p42._0;
-         var seed4 = _p42._1;
-         return {ctor: "_Tuple2",_0: A4(func,a,b,c,d),_1: seed4};
-      });
-   });
-   var map3 = F4(function (func,_p45,_p44,_p43) {
-      var _p46 = _p45;
-      var _p47 = _p44;
-      var _p48 = _p43;
-      return Generator(function (seed0) {
-         var _p49 = _p46._0(seed0);
-         var a = _p49._0;
-         var seed1 = _p49._1;
-         var _p50 = _p47._0(seed1);
-         var b = _p50._0;
-         var seed2 = _p50._1;
-         var _p51 = _p48._0(seed2);
-         var c = _p51._0;
-         var seed3 = _p51._1;
-         return {ctor: "_Tuple2",_0: A3(func,a,b,c),_1: seed3};
-      });
-   });
-   var map2 = F3(function (func,_p53,_p52) {
-      var _p54 = _p53;
-      var _p55 = _p52;
-      return Generator(function (seed0) {
-         var _p56 = _p54._0(seed0);
-         var a = _p56._0;
-         var seed1 = _p56._1;
-         var _p57 = _p55._0(seed1);
-         var b = _p57._0;
-         var seed2 = _p57._1;
-         return {ctor: "_Tuple2",_0: A2(func,a,b),_1: seed2};
-      });
-   });
-   var map = F2(function (func,_p58) {
-      var _p59 = _p58;
-      return Generator(function (seed0) {    var _p60 = _p59._0(seed0);var a = _p60._0;var seed1 = _p60._1;return {ctor: "_Tuple2",_0: func(a),_1: seed1};});
-   });
-   var listHelp = F4(function (list,n,generate,seed) {
-      listHelp: while (true) if (_U.cmp(n,1) < 0) return {ctor: "_Tuple2",_0: $List.reverse(list),_1: seed}; else {
-            var _p61 = generate(seed);
-            var value = _p61._0;
-            var newSeed = _p61._1;
-            var _v19 = A2($List._op["::"],value,list),_v20 = n - 1,_v21 = generate,_v22 = newSeed;
-            list = _v19;
-            n = _v20;
-            generate = _v21;
-            seed = _v22;
-            continue listHelp;
-         }
-   });
-   var list = F2(function (n,_p62) {    var _p63 = _p62;return Generator(function (seed) {    return A4(listHelp,_U.list([]),n,_p63._0,seed);});});
-   var pair = F2(function (genA,genB) {    return A3(map2,F2(function (v0,v1) {    return {ctor: "_Tuple2",_0: v0,_1: v1};}),genA,genB);});
-   var minInt = -2147483648;
-   var maxInt = 2147483647;
-   var iLogBase = F2(function (b,i) {    return _U.cmp(i,b) < 0 ? 1 : 1 + A2(iLogBase,b,i / b | 0);});
-   var $int = F2(function (a,b) {
-      return Generator(function (_p64) {
-         var _p65 = _p64;
-         var _p70 = _p65._0;
-         var base = 2147483561;
-         var f = F3(function (n,acc,state) {
-            f: while (true) {
-               var _p66 = n;
-               if (_p66 === 0) {
-                     return {ctor: "_Tuple2",_0: acc,_1: state};
-                  } else {
-                     var _p67 = _p70.next(state);
-                     var x = _p67._0;
-                     var state$ = _p67._1;
-                     var _v26 = n - 1,_v27 = x + acc * base,_v28 = state$;
-                     n = _v26;
-                     acc = _v27;
-                     state = _v28;
-                     continue f;
-                  }
-            }
-         });
-         var _p68 = _U.cmp(a,b) < 0 ? {ctor: "_Tuple2",_0: a,_1: b} : {ctor: "_Tuple2",_0: b,_1: a};
-         var lo = _p68._0;
-         var hi = _p68._1;
-         var k = hi - lo + 1;
-         var n = A2(iLogBase,base,k);
-         var _p69 = A3(f,n,1,_p70.state);
-         var v = _p69._0;
-         var state$ = _p69._1;
-         return {ctor: "_Tuple2",_0: lo + A2($Basics._op["%"],v,k),_1: Seed(_U.update(_p70,{state: state$}))};
-      });
-   });
-   var $float = F2(function (a,b) {
-      return Generator(function (seed) {
-         var _p71 = A2(generate,A2($int,minInt,maxInt),seed);
-         var number = _p71._0;
-         var newSeed = _p71._1;
-         var negativeOneToOne = $Basics.toFloat(number) / $Basics.toFloat(maxInt - minInt);
-         var _p72 = _U.cmp(a,b) < 0 ? {ctor: "_Tuple2",_0: a,_1: b} : {ctor: "_Tuple2",_0: b,_1: a};
-         var lo = _p72._0;
-         var hi = _p72._1;
-         var scaled = (lo + hi) / 2 + (hi - lo) * negativeOneToOne;
-         return {ctor: "_Tuple2",_0: scaled,_1: newSeed};
-      });
-   });
-   var bool = A2(map,F2(function (x,y) {    return _U.eq(x,y);})(1),A2($int,0,1));
-   return _elm.Random.values = {_op: _op
-                               ,bool: bool
-                               ,$int: $int
-                               ,$float: $float
-                               ,list: list
-                               ,pair: pair
-                               ,map: map
-                               ,map2: map2
-                               ,map3: map3
-                               ,map4: map4
-                               ,map5: map5
-                               ,andThen: andThen
-                               ,minInt: minInt
-                               ,maxInt: maxInt
-                               ,generate: generate
-                               ,initialSeed: initialSeed};
 };Elm.Native.Char = {};
 Elm.Native.Char.make = function(localRuntime) {
 	localRuntime.Native = localRuntime.Native || {};
@@ -10938,44 +10712,6 @@ Elm.Html.Events.make = function (_elm) {
                                     ,targetChecked: targetChecked
                                     ,keyCode: keyCode
                                     ,Options: Options};
-};Elm.StartApp = Elm.StartApp || {};
-Elm.StartApp.make = function (_elm) {
-   "use strict";
-   _elm.StartApp = _elm.StartApp || {};
-   if (_elm.StartApp.values) return _elm.StartApp.values;
-   var _U = Elm.Native.Utils.make(_elm),
-   $Basics = Elm.Basics.make(_elm),
-   $Debug = Elm.Debug.make(_elm),
-   $Effects = Elm.Effects.make(_elm),
-   $Html = Elm.Html.make(_elm),
-   $List = Elm.List.make(_elm),
-   $Maybe = Elm.Maybe.make(_elm),
-   $Result = Elm.Result.make(_elm),
-   $Signal = Elm.Signal.make(_elm),
-   $Task = Elm.Task.make(_elm);
-   var _op = {};
-   var start = function (config) {
-      var updateStep = F2(function (action,_p0) {
-         var _p1 = _p0;
-         var _p2 = A2(config.update,action,_p1._0);
-         var newModel = _p2._0;
-         var additionalEffects = _p2._1;
-         return {ctor: "_Tuple2",_0: newModel,_1: $Effects.batch(_U.list([_p1._1,additionalEffects]))};
-      });
-      var update = F2(function (actions,_p3) {    var _p4 = _p3;return A3($List.foldl,updateStep,{ctor: "_Tuple2",_0: _p4._0,_1: $Effects.none},actions);});
-      var messages = $Signal.mailbox(_U.list([]));
-      var singleton = function (action) {    return _U.list([action]);};
-      var address = A2($Signal.forwardTo,messages.address,singleton);
-      var inputs = $Signal.mergeMany(A2($List._op["::"],messages.signal,A2($List.map,$Signal.map(singleton),config.inputs)));
-      var effectsAndModel = A3($Signal.foldp,update,config.init,inputs);
-      var model = A2($Signal.map,$Basics.fst,effectsAndModel);
-      return {html: A2($Signal.map,config.view(address),model)
-             ,model: model
-             ,tasks: A2($Signal.map,function (_p5) {    return A2($Effects.toTask,messages.address,$Basics.snd(_p5));},effectsAndModel)};
-   };
-   var App = F3(function (a,b,c) {    return {html: a,model: b,tasks: c};});
-   var Config = F4(function (a,b,c,d) {    return {init: a,update: b,view: c,inputs: d};});
-   return _elm.StartApp.values = {_op: _op,start: start,Config: Config,App: App};
 };Elm.Go = Elm.Go || {};
 Elm.Go.make = function (_elm) {
    "use strict";
@@ -10984,7 +10720,6 @@ Elm.Go.make = function (_elm) {
    var _U = Elm.Native.Utils.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
-   $Effects = Elm.Effects.make(_elm),
    $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
@@ -10995,8 +10730,9 @@ Elm.Go.make = function (_elm) {
    $Result = Elm.Result.make(_elm),
    $Set = Elm.Set.make(_elm),
    $Signal = Elm.Signal.make(_elm),
-   $StartApp = Elm.StartApp.make(_elm);
+   $Time = Elm.Time.make(_elm);
    var _op = {};
+   var clearBoth = _U.list([{ctor: "_Tuple2",_0: "clear",_1: "both"}]);
    var starPointStyle = _U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
                                 ,{ctor: "_Tuple2",_0: "height",_1: "8px"}
                                 ,{ctor: "_Tuple2",_0: "width",_1: "8px"}
@@ -11036,6 +10772,72 @@ Elm.Go.make = function (_elm) {
                             ,{ctor: "_Tuple2",_0: "position",_1: "relative"}
                             ,{ctor: "_Tuple2",_0: "float",_1: "left"}
                             ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
+   var buttonStyle = _U.list([{ctor: "_Tuple2",_0: "border",_1: "1px solid #ccc"}
+                             ,{ctor: "_Tuple2",_0: "background",_1: "white"}
+                             ,{ctor: "_Tuple2",_0: "padding",_1: "5px 10px"}
+                             ,{ctor: "_Tuple2",_0: "text-align",_1: "center"}
+                             ,{ctor: "_Tuple2",_0: "border-radius",_1: "3px"}
+                             ,{ctor: "_Tuple2",_0: "font-size",_1: "1.2em"}
+                             ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}
+                             ,{ctor: "_Tuple2",_0: "margin-bottom",_1: "5px"}]);
+   var whiteTimeStyle = function (timeLeft) {
+      return _U.list([{ctor: "_Tuple2",_0: "float",_1: "right"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
+   };
+   var blackTimeStyle = function (timeLeft) {
+      return _U.list([{ctor: "_Tuple2",_0: "float",_1: "left"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
+   };
+   var sidePaneStyle = _U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}
+                               ,{ctor: "_Tuple2",_0: "margin-left",_1: "20px"}
+                               ,{ctor: "_Tuple2",_0: "padding-left",_1: "20px"}
+                               ,{ctor: "_Tuple2",_0: "width",_1: "400px"}]);
+   var boardDimensions = function (boardSize) {    return $Basics.toString(boardSize * 30);};
+   var boardStyle = function (boardSize) {
+      return _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}
+                     ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}
+                     ,{ctor: "_Tuple2",_0: "padding",_1: "5px"}
+                     ,{ctor: "_Tuple2",_0: "margin",_1: "10px"}
+                     ,{ctor: "_Tuple2",_0: "background",_1: "#dfbe48"}
+                     ,{ctor: "_Tuple2",_0: "float",_1: "left"}]);
+   };
+   var isStarPoint = F2(function (location,boardSize) {
+      return A2($List.member,
+      location,
+      function () {
+         var _p0 = boardSize;
+         switch (_p0)
+         {case 19: return _U.list([{ctor: "_Tuple2",_0: 3,_1: 3}
+                                  ,{ctor: "_Tuple2",_0: 3,_1: 9}
+                                  ,{ctor: "_Tuple2",_0: 3,_1: 15}
+                                  ,{ctor: "_Tuple2",_0: 9,_1: 3}
+                                  ,{ctor: "_Tuple2",_0: 9,_1: 9}
+                                  ,{ctor: "_Tuple2",_0: 9,_1: 15}
+                                  ,{ctor: "_Tuple2",_0: 15,_1: 3}
+                                  ,{ctor: "_Tuple2",_0: 15,_1: 9}
+                                  ,{ctor: "_Tuple2",_0: 15,_1: 15}]);
+            case 13: return _U.list([{ctor: "_Tuple2",_0: 3,_1: 3},{ctor: "_Tuple2",_0: 3,_1: 9},{ctor: "_Tuple2",_0: 9,_1: 3},{ctor: "_Tuple2",_0: 9,_1: 9}]);
+            case 9: return _U.list([{ctor: "_Tuple2",_0: 2,_1: 2},{ctor: "_Tuple2",_0: 2,_1: 6},{ctor: "_Tuple2",_0: 6,_1: 2},{ctor: "_Tuple2",_0: 6,_1: 6}]);
+            default: return _U.list([]);}
+      }());
+   });
+   var drawPointLines = F2(function (location,boardSize) {
+      var isWestEdge = _U.eq($Matrix.col(location),boardSize - 1);
+      var isSouthEdge = _U.eq($Matrix.col(location),0);
+      var isEastEdge = _U.eq($Matrix.row(location),boardSize - 1);
+      var isNorthEdge = _U.eq($Matrix.row(location),0);
+      return _U.list([A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isNorthEdge) ? northLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isEastEdge) ? southLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isSouthEdge) ? westLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isWestEdge) ? eastLineStyle : _U.list([]))]),_U.list([]))
+                     ,A2($Html.div,_U.list([$Html$Attributes.style(A2(isStarPoint,location,boardSize) ? starPointStyle : _U.list([]))]),_U.list([]))]);
+   });
+   var getLocationFromIndex = F2(function (index,boardSize) {    return {ctor: "_Tuple2",_0: index / boardSize | 0,_1: A2($Basics._op["%"],index,boardSize)};});
+   var toMmSs = function (seconds) {
+      var remainder = A2($Basics._op["%"],seconds,60);
+      var remainderStr = $Basics.toString(remainder);
+      var remainderStrZeroed = _U.cmp(remainder,10) < 0 ? A2($Basics._op["++"],"0",remainderStr) : remainderStr;
+      var minutes = $Basics.toString(seconds / 60 | 0);
+      return A2($Basics._op["++"],minutes,A2($Basics._op["++"],":",remainderStrZeroed));
+   };
    var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
       return _U.list([{ctor: "_Tuple2",_0: $Matrix.row(location) - 1,_1: $Matrix.col(location)}
@@ -11043,10 +10845,73 @@ Elm.Go.make = function (_elm) {
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) + 1}
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) - 1}]);
    };
-   var Reset = {ctor: "Reset"};
+   var isEndOfGame = function (model) {    return _U.eq(model.blackSecondsRemaining,0) || _U.eq(model.whiteSecondsRemaining,0);};
+   var NoOp = {ctor: "NoOp"};
+   var TogglePause = {ctor: "TogglePause"};
+   var Tick = function (a) {    return {ctor: "Tick",_0: a};};
+   var Reset = function (a) {    return {ctor: "Reset",_0: a};};
    var Move = function (a) {    return {ctor: "Move",_0: a};};
-   var Model = F6(function (a,b,c,d,e,f) {    return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e,previousBoards: f};});
+   var viewPoint = F4(function (address,stone,location,boardSize) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.style(pointStyle),A2($Html$Events.onClick,address,Move(location))]),
+      A2($List.append,
+      A2(drawPointLines,location,boardSize),
+      _U.list([A2($Html.div,
+      _U.list([$Html$Attributes.style(stoneStyle)]),
+      _U.list([function () {
+         var _p1 = stone;
+         switch (_p1.ctor)
+         {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"));
+            case "WhiteStone": var _p2 = location;
+              var y = _p2._0;
+              var x = _p2._1;
+              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
+              return $Html.fromElement(A3($Graphics$Element.image,
+              32,
+              32,
+              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))));
+            default: return $Html.text("");}
+      }()]))])));
+   });
+   var viewBoard = F2(function (address,model) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.style(boardStyle(model.boardSize))]),
+      A2($List.indexedMap,
+      F2(function (i,stone) {    return A4(viewPoint,address,stone,A2(getLocationFromIndex,i,model.boardSize),model.boardSize);}),
+      $Matrix.flatten(model.board)));
+   });
+   var Model = function (a) {
+      return function (b) {
+         return function (c) {
+            return function (d) {
+               return function (e) {
+                  return function (f) {
+                     return function (g) {
+                        return function (h) {
+                           return function (i) {
+                              return function (j) {
+                                 return {boardSize: a
+                                        ,board: b
+                                        ,currentPlayer: c
+                                        ,currentMove: d
+                                        ,whiteCaptures: e
+                                        ,blackCaptures: f
+                                        ,previousBoards: g
+                                        ,blackSecondsRemaining: h
+                                        ,whiteSecondsRemaining: i
+                                        ,isClockPaused: j};
+                              };
+                           };
+                        };
+                     };
+                  };
+               };
+            };
+         };
+      };
+   };
    var Liberty = {ctor: "Liberty"};
+   var initialBoard = function (boardSize) {    return A2($Matrix.square,boardSize,function (_p3) {    return Liberty;});};
    var isLiberty = F2(function (location,board) {    return _U.eq(A2(getStoneAt,location,board),$Maybe.Just(Liberty));});
    var doesGroupHaveLiberties = F2(function (group,board) {
       var groupNeighbors = A2($List.concatMap,function (stoneLocation) {    return getNeighborLocations(stoneLocation);},group);
@@ -11056,11 +10921,11 @@ Elm.Go.make = function (_elm) {
       var nextInspected = A2($List._op["::"],location,inspected);
       var allNeighbors = getNeighborLocations(location);
       var friendlyStone = function () {
-         var _p0 = A2(getStoneAt,location,board);
-         if (_p0.ctor === "Nothing") {
+         var _p4 = A2(getStoneAt,location,board);
+         if (_p4.ctor === "Nothing") {
                return Liberty;
             } else {
-               return _p0._0;
+               return _p4._0;
             }
       }();
       var isUnvisitedFriendlyNeighbor = function (neighborLocation) {
@@ -11071,17 +10936,26 @@ Elm.Go.make = function (_elm) {
       _U.list([location]),
       A2($List.concatMap,function (neighborLocation) {    return A3(getGroupFromLocation,neighborLocation,board,nextInspected);},unvisitedFriendlyNeighbors));
    });
-   var captureStones = F2(function (board,captures) {
+   var removeStonesFromBoard = F2(function (captures,board) {
       return A3($List.foldl,F2(function (capturedLocation,matrix) {    return A3($Matrix.set,capturedLocation,Liberty,matrix);}),board,captures);
    });
    var WhiteStone = {ctor: "WhiteStone"};
    var BlackStone = {ctor: "BlackStone"};
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
+   var initialModel = function (boardSize) {    return Model(boardSize)(initialBoard(boardSize))(Black)(1)(0)(0)(_U.list([]))(180)(180)(false);};
+   var decrementTime = function (model) {
+      var whiteSecondsRemaining = $Basics.not(isEndOfGame(model)) && _U.eq(model.currentPlayer,
+      White) ? model.whiteSecondsRemaining - 1 : model.whiteSecondsRemaining;
+      var blackSecondsRemaining = $Basics.not(isEndOfGame(model)) && _U.eq(model.currentPlayer,
+      Black) ? model.blackSecondsRemaining - 1 : model.blackSecondsRemaining;
+      var updatedModel = _U.update(model,{blackSecondsRemaining: blackSecondsRemaining,whiteSecondsRemaining: whiteSecondsRemaining});
+      return _U.update(updatedModel,{isClockPaused: isEndOfGame(updatedModel)});
+   };
    var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
       var neighbors = getNeighborLocations(location);
-      var stone = function () {    var _p1 = player;if (_p1.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var stone = function () {    var _p5 = player;if (_p5.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
       var newBoard = A3($Matrix.set,location,stone,board);
       var enemyNeighbors = A2($List.filter,
       function (neighborLocation) {
@@ -11094,120 +10968,99 @@ Elm.Go.make = function (_elm) {
          return $Basics.not(A2(doesGroupHaveLiberties,enemyGroup,newBoard));
       },
       enemyGroups);
-      return A2($Debug.log,
-      "all enemy captures",
-      $Set.toList($Set.fromList(A2($List.concatMap,function (group) {    return group;},enemyGroupsWithoutLiberties))));
+      return $Set.toList($Set.fromList(A2($List.concatMap,function (group) {    return group;},enemyGroupsWithoutLiberties)));
    });
    var attemptMove = F2(function (model,location) {
-      var stone = function () {    var _p2 = model.currentPlayer;if (_p2.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
-      var hypotheticalBoard = A3($Matrix.set,location,stone,model.board);
-      var hypotheticalGroup = A3(getGroupFromLocation,location,hypotheticalBoard,_U.list([]));
-      var hypotheticalCaptures = A3(getCaptures,location,hypotheticalBoard,model.currentPlayer);
-      var hypotheticalBoardAfterCapture = A2(captureStones,hypotheticalBoard,hypotheticalCaptures);
-      var blackCaptures = _U.eq(model.currentPlayer,White) ? 0 : $List.length(hypotheticalCaptures);
-      var whiteCaptures = _U.eq(model.currentPlayer,Black) ? 0 : $List.length(hypotheticalCaptures);
+      var nextPlayer = function () {    var _p6 = model.currentPlayer;if (_p6.ctor === "White") {    return Black;} else {    return White;}}();
+      var stone = function () {    var _p7 = model.currentPlayer;if (_p7.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var potentialBoard = A3($Matrix.set,location,stone,model.board);
+      var potentialGroup = A3(getGroupFromLocation,location,potentialBoard,_U.list([]));
+      var potentialCaptures = A3(getCaptures,location,potentialBoard,model.currentPlayer);
+      var potentialBoardAfterCapture = A2(removeStonesFromBoard,potentialCaptures,potentialBoard);
+      var blackCaptures = _U.eq(model.currentPlayer,White) ? 0 : $List.length(potentialCaptures);
+      var whiteCaptures = _U.eq(model.currentPlayer,Black) ? 0 : $List.length(potentialCaptures);
       var isLegalMove = _U.eq(A2($Matrix.get,location,model.board),$Maybe.Just(Liberty)) && ($Basics.not(A2($List.member,
-      hypotheticalBoardAfterCapture,
-      model.previousBoards)) && (A2(doesGroupHaveLiberties,hypotheticalGroup,hypotheticalBoard) || $Basics.not($List.isEmpty(hypotheticalCaptures))));
-      var currentPlayer = function () {
-         if (isLegalMove) {
-               var _p3 = model.currentPlayer;
-               if (_p3.ctor === "White") {
-                     return Black;
-                  } else {
-                     return White;
-                  }
-            } else return model.currentPlayer;
-      }();
+      potentialBoardAfterCapture,
+      model.previousBoards)) && (A2(doesGroupHaveLiberties,potentialGroup,potentialBoard) || $Basics.not($List.isEmpty(potentialCaptures))));
       var updatedModel = isLegalMove ? _U.update(model,
-      {board: hypotheticalBoardAfterCapture
-      ,currentPlayer: currentPlayer
+      {board: potentialBoardAfterCapture
+      ,currentPlayer: nextPlayer
       ,currentMove: model.currentMove + 1
       ,blackCaptures: model.blackCaptures + blackCaptures
       ,whiteCaptures: model.whiteCaptures + whiteCaptures
-      ,previousBoards: A2($List._op["::"],hypotheticalBoardAfterCapture,model.previousBoards)}) : model;
+      ,previousBoards: A2($List._op["::"],model.board,model.previousBoards)}) : model;
       return updatedModel;
    });
-   var boardSize = 19;
-   var initialBoard = A2($Matrix.square,boardSize,function (_p4) {    return Liberty;});
-   var initialModel = A6(Model,initialBoard,Black,1,0,0,_U.list([]));
    var update = F2(function (action,model) {
-      var _p5 = action;
-      if (_p5.ctor === "Move") {
-            return {ctor: "_Tuple2",_0: A2(attemptMove,model,_p5._0),_1: $Effects.none};
-         } else {
-            return {ctor: "_Tuple2",_0: initialModel,_1: $Effects.none};
-         }
+      var _p8 = action;
+      switch (_p8.ctor)
+      {case "Move": return model.isClockPaused || isEndOfGame(model) ? model : A2(attemptMove,model,_p8._0);
+         case "Reset": return initialModel(_p8._0);
+         case "Tick": return model.isClockPaused ? model : decrementTime(model);
+         case "TogglePause": return _U.update(model,{isClockPaused: $Basics.not(model.isClockPaused)});
+         default: return model;}
    });
-   var getLocationFromIndex = function (index) {    return {ctor: "_Tuple2",_0: index / boardSize | 0,_1: A2($Basics._op["%"],index,boardSize)};};
-   var drawPointLines = function (location) {
-      var isStarPoint = A2($List.member,
-      location,
-      _U.list([{ctor: "_Tuple2",_0: 3,_1: 3}
-              ,{ctor: "_Tuple2",_0: 3,_1: 9}
-              ,{ctor: "_Tuple2",_0: 3,_1: 15}
-              ,{ctor: "_Tuple2",_0: 9,_1: 3}
-              ,{ctor: "_Tuple2",_0: 9,_1: 9}
-              ,{ctor: "_Tuple2",_0: 9,_1: 15}
-              ,{ctor: "_Tuple2",_0: 15,_1: 3}
-              ,{ctor: "_Tuple2",_0: 15,_1: 9}
-              ,{ctor: "_Tuple2",_0: 15,_1: 15}]));
-      var isWestEdge = _U.eq($Matrix.col(location),boardSize - 1);
-      var isSouthEdge = _U.eq($Matrix.col(location),0);
-      var isEastEdge = _U.eq($Matrix.row(location),boardSize - 1);
-      var isNorthEdge = _U.eq($Matrix.row(location),0);
-      return _U.list([A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isNorthEdge) ? northLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isEastEdge) ? southLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isSouthEdge) ? westLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style($Basics.not(isWestEdge) ? eastLineStyle : _U.list([]))]),_U.list([]))
-                     ,A2($Html.div,_U.list([$Html$Attributes.style(isStarPoint ? starPointStyle : _U.list([]))]),_U.list([]))]);
-   };
-   var viewPoint = F3(function (address,stone,location) {
+   var viewSidePane = F2(function (address,model) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.style(pointStyle),A2($Html$Events.onClick,address,Move(location))]),
-      A2($List.append,
-      drawPointLines(location),
-      _U.list([A2($Html.div,
-      _U.list([$Html$Attributes.style(stoneStyle)]),
-      _U.list([function () {
-         var _p6 = stone;
-         switch (_p6.ctor)
-         {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"));
-            case "WhiteStone": var _p7 = location;
-              var y = _p7._0;
-              var x = _p7._1;
-              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
-              return $Html.fromElement(A3($Graphics$Element.image,
-              32,
-              32,
-              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))));
-            default: return $Html.text("");}
-      }()]))])));
+      _U.list([$Html$Attributes.style(sidePaneStyle)]),
+      _U.list([A2($Html.h1,_U.list([]),_U.list([$Html.text("Elm Goban")]))
+              ,A2($Html.h3,
+              _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq(model.currentPlayer,Black) ? "left" : "right"}]))]),
+              _U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(model.currentPlayer),"\'s move"))]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.style(clearBoth)]),
+              _U.list([A2($Html.h4,
+                      _U.list([$Html$Attributes.style(blackTimeStyle(model.blackSecondsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black time: ",toMmSs(model.blackSecondsRemaining)))]))
+                      ,A2($Html.h4,
+                      _U.list([$Html$Attributes.style(whiteTimeStyle(model.whiteSecondsRemaining))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white time: ",toMmSs(model.whiteSecondsRemaining)))]))]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.style(clearBoth)]),
+              _U.list([A2($Html.h4,
+                      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "left"}]))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(model.blackCaptures)))]))
+                      ,A2($Html.h4,
+                      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(model.whiteCaptures)))]))]))
+              ,A2($Html.div,
+              _U.list([$Html$Attributes.style(clearBoth)]),
+              _U.list([A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,TogglePause)
+                      ,$Html$Attributes.style(A2($List.append,
+                      buttonStyle,
+                      isEndOfGame(model) ? _U.list([{ctor: "_Tuple2",_0: "display",_1: "none"}]) : _U.list([])))]),
+              _U.list([$Html.text(model.isClockPaused ? "Resume game" : "Pause game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Reset(19)),$Html$Attributes.style(buttonStyle)]),
+              _U.list([$Html.text("New 19x19 game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Reset(13)),$Html$Attributes.style(buttonStyle)]),
+              _U.list([$Html.text("New 13x13 game")]))]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Reset(9)),$Html$Attributes.style(buttonStyle)]),
+              _U.list([$Html.text("New 9x9 game")]))]))]));
    });
-   var boardDimensions = $Basics.toString(boardSize * 30);
-   var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],boardDimensions,"px")}
-                            ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],boardDimensions,"px")}
-                            ,{ctor: "_Tuple2",_0: "padding",_1: "5px"}
-                            ,{ctor: "_Tuple2",_0: "margin",_1: "10px"}
-                            ,{ctor: "_Tuple2",_0: "background",_1: "#dfbe48"}]);
    var view = F2(function (address,model) {
       return A2($Html.div,
-      _U.list([]),
-      _U.list([A2($Html.h3,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(model.currentPlayer),"\'s move"))]))
-              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(model.whiteCaptures)))]))
-              ,A2($Html.h4,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"black captures: ",$Basics.toString(model.blackCaptures)))]))
-              ,A2($Html.div,_U.list([]),_U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset)]),_U.list([$Html.text("New game")]))]))
-              ,A2($Html.hr,_U.list([]),_U.list([]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.style(boardStyle)]),
-              A2($List.indexedMap,F2(function (i,stone) {    return A3(viewPoint,address,stone,getLocationFromIndex(i));}),$Matrix.flatten(model.board)))]));
+      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "1040px"}]))]),
+      _U.list([A2(viewBoard,address,model),A2(viewSidePane,address,model)]));
    });
-   var app = $StartApp.start({init: {ctor: "_Tuple2",_0: initialModel,_1: $Effects.none},update: update,view: view,inputs: _U.list([])});
-   var main = app.html;
+   var main = function () {
+      var state = initialModel(19);
+      var actions = $Signal.mailbox(NoOp);
+      var inputs = $Signal.mergeMany(_U.list([actions.signal,A2($Signal.map,Tick,$Time.every($Time.second))]));
+      var model = A3($Signal.foldp,update,state,inputs);
+      return A2($Signal.map,view(actions.address),model);
+   }();
    return _elm.Go.values = {_op: _op
-                           ,app: app
                            ,main: main
-                           ,boardSize: boardSize
                            ,Black: Black
                            ,White: White
                            ,BlackStone: BlackStone
@@ -11218,7 +11071,12 @@ Elm.Go.make = function (_elm) {
                            ,initialModel: initialModel
                            ,Move: Move
                            ,Reset: Reset
+                           ,Tick: Tick
+                           ,TogglePause: TogglePause
+                           ,NoOp: NoOp
                            ,update: update
+                           ,isEndOfGame: isEndOfGame
+                           ,decrementTime: decrementTime
                            ,getNeighborLocations: getNeighborLocations
                            ,getStoneAt: getStoneAt
                            ,isLiberty: isLiberty
@@ -11226,18 +11084,27 @@ Elm.Go.make = function (_elm) {
                            ,getGroupFromLocation: getGroupFromLocation
                            ,doesGroupHaveLiberties: doesGroupHaveLiberties
                            ,getCaptures: getCaptures
-                           ,captureStones: captureStones
+                           ,removeStonesFromBoard: removeStonesFromBoard
                            ,view: view
+                           ,viewBoard: viewBoard
+                           ,viewSidePane: viewSidePane
+                           ,toMmSs: toMmSs
                            ,getLocationFromIndex: getLocationFromIndex
                            ,drawPointLines: drawPointLines
+                           ,isStarPoint: isStarPoint
                            ,viewPoint: viewPoint
                            ,boardDimensions: boardDimensions
                            ,boardStyle: boardStyle
+                           ,sidePaneStyle: sidePaneStyle
+                           ,blackTimeStyle: blackTimeStyle
+                           ,whiteTimeStyle: whiteTimeStyle
+                           ,buttonStyle: buttonStyle
                            ,pointStyle: pointStyle
                            ,stoneStyle: stoneStyle
                            ,northLineStyle: northLineStyle
                            ,southLineStyle: southLineStyle
                            ,westLineStyle: westLineStyle
                            ,eastLineStyle: eastLineStyle
-                           ,starPointStyle: starPointStyle};
+                           ,starPointStyle: starPointStyle
+                           ,clearBoth: clearBoth};
 };</script></head><body><script type="text/javascript">Elm.fullscreen(Elm.Go)</script></body></html>
