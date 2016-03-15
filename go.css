@@ -80,6 +80,10 @@ button {
   margin: 10px;
   background: #dfbe48;
   float: left;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
 }
 
 .clear {
