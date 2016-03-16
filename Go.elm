@@ -307,12 +307,24 @@ attemptMove model location =
           , blackCaptures = model.blackCaptures + blackCaptures
           , whiteCaptures = model.whiteCaptures + whiteCaptures
           , previousBoards = model.board :: model.previousBoards
+          , blackClock = resetOvertimeClock Black model.currentPlayer model.blackClock
+          , whiteClock = resetOvertimeClock White model.currentPlayer model.whiteClock
         }
       else
         model
 
   in
     updatedModel
+
+
+resetOvertimeClock : Player -> Player -> Clock -> Clock
+resetOvertimeClock forPlayer currentPlayer clock =
+  if forPlayer == currentPlayer && clock.secondsRemaining == 0 then
+    { clock
+      | overtimeRemaining = initialOvertime
+    }
+  else
+    clock
 
 
 {-| Get the group of stones connected to the stone at a location
@@ -480,32 +492,21 @@ viewCurrentPlayer currentPlayer =
 viewClock : Clock -> Clock -> Html
 viewClock blackClock whiteClock =
   div [ class "clear" ]
-    [ div [ class "clear" ]
-      [
-        p
-        [ style (blackTimeStyle blackClock.secondsRemaining) ]
+    [ div [ class "blackClock" ]
+      [ p [ style (timeStyle blackClock) ]
         [ text ("black time: " ++ toMmSs blackClock.secondsRemaining) ]
-      , p
-        [ style (whiteTimeStyle whiteClock.secondsRemaining) ]
-        [ text ("white time: " ++ toMmSs whiteClock.secondsRemaining) ]
-      ]
-    , div [ class "clear" ]
-      [
-        p
-        [ style (blackTimeStyle blackClock.overtimeRemaining) ]
+      , p [ style (overtimeStyle blackClock) ]
         [ text ("black overtime: " ++ toMmSs blackClock.overtimeRemaining) ]
-      , p
-        [ style (whiteTimeStyle whiteClock.overtimeRemaining) ]
-        [ text ("white overtime: " ++ toMmSs whiteClock.overtimeRemaining) ]
+      , p [ style (overtimePeriodsStyle blackClock) ]
+        [ text ("black overtime periods: " ++ toString blackClock.periodsRemaining) ]
       ]
-    , div [ class "clear" ]
-      [
-        p
-        [ style (blackTimeStyle blackClock.periodsRemaining) ]
-        [ text ("black periods: " ++ toString blackClock.periodsRemaining) ]
-      , p
-        [ style (whiteTimeStyle whiteClock.periodsRemaining) ]
-        [ text ("white periods: " ++ toString whiteClock.periodsRemaining) ]
+    , div [ class "whiteClock" ]
+      [ p [ style (timeStyle whiteClock) ]
+        [ text ("white time: " ++ toMmSs whiteClock.secondsRemaining) ]
+      , p [ style (overtimeStyle whiteClock) ]
+        [ text ("white overtime: " ++ toMmSs whiteClock.overtimeRemaining) ]
+      , p [ style (overtimePeriodsStyle whiteClock) ]
+        [ text ("white overtime periods: " ++ toString whiteClock.periodsRemaining) ]
       ]
     ]
 
@@ -638,14 +639,22 @@ boardStyle boardSize =
   , ("height", ((boardDimensions boardSize) ++ "px"))
   ]
 
-blackTimeStyle : Int -> List Style
-blackTimeStyle timeLeft =
-  [ ("float","left")
-  , ("color", if timeLeft > 0 then "black" else "red")
+
+timeStyle : Clock -> List Style
+timeStyle clock =
+  [ ("color", if clock.secondsRemaining > 0 then "black" else "red")
   ]
 
-whiteTimeStyle : Int -> List Style
-whiteTimeStyle timeLeft =
-  [ ("float","right")
-  , ("color", if timeLeft > 0 then "black" else "red")
+
+overtimeStyle : Clock -> List Style
+overtimeStyle clock =
+  [ ("color", if clock.overtimeRemaining > 0 then "black" else "red")
+  , ("visibility", if clock.secondsRemaining == 0 then "visible" else "hidden")
+  ]
+
+
+overtimePeriodsStyle : Clock -> List Style
+overtimePeriodsStyle clock =
+  [ ("color", if clock.periodsRemaining > 0 then "black" else "red")
+  , ("visibility", if clock.secondsRemaining == 0 then "visible" else "hidden")
   ]

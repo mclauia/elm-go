@@ -92,3 +92,10 @@ button {
 .clear {
   clear: both;
 }
+
+.blackClock {
+  float: left;
+}
+.whiteClock {
+  float: right;
+}

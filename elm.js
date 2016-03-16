@@ -10800,12 +10800,15 @@ Elm.Go.make = function (_elm) {
    $Time = Elm.Time.make(_elm),
    $Utils = Elm.Utils.make(_elm);
    var _op = {};
-   var whiteTimeStyle = function (timeLeft) {
-      return _U.list([{ctor: "_Tuple2",_0: "float",_1: "right"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
+   var overtimePeriodsStyle = function (clock) {
+      return _U.list([{ctor: "_Tuple2",_0: "color",_1: _U.cmp(clock.periodsRemaining,0) > 0 ? "black" : "red"}
+                     ,{ctor: "_Tuple2",_0: "visibility",_1: _U.eq(clock.secondsRemaining,0) ? "visible" : "hidden"}]);
    };
-   var blackTimeStyle = function (timeLeft) {
-      return _U.list([{ctor: "_Tuple2",_0: "float",_1: "left"},{ctor: "_Tuple2",_0: "color",_1: _U.cmp(timeLeft,0) > 0 ? "black" : "red"}]);
+   var overtimeStyle = function (clock) {
+      return _U.list([{ctor: "_Tuple2",_0: "color",_1: _U.cmp(clock.overtimeRemaining,0) > 0 ? "black" : "red"}
+                     ,{ctor: "_Tuple2",_0: "visibility",_1: _U.eq(clock.secondsRemaining,0) ? "visible" : "hidden"}]);
    };
+   var timeStyle = function (clock) {    return _U.list([{ctor: "_Tuple2",_0: "color",_1: _U.cmp(clock.secondsRemaining,0) > 0 ? "black" : "red"}]);};
    var boardDimensions = function (boardSize) {    return $Basics.toString(boardSize * 30);};
    var boardStyle = function (boardSize) {
       return _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],boardDimensions(boardSize),"px")}
@@ -10857,29 +10860,27 @@ Elm.Go.make = function (_elm) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("clear")]),
       _U.list([A2($Html.div,
-              _U.list([$Html$Attributes.$class("clear")]),
+              _U.list([$Html$Attributes.$class("blackClock")]),
               _U.list([A2($Html.p,
-                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.secondsRemaining))]),
+                      _U.list([$Html$Attributes.style(timeStyle(blackClock))]),
                       _U.list([$Html.text(A2($Basics._op["++"],"black time: ",$Utils.toMmSs(blackClock.secondsRemaining)))]))
                       ,A2($Html.p,
-                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.secondsRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"white time: ",$Utils.toMmSs(whiteClock.secondsRemaining)))]))]))
-              ,A2($Html.div,
-              _U.list([$Html$Attributes.$class("clear")]),
-              _U.list([A2($Html.p,
-                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.overtimeRemaining))]),
+                      _U.list([$Html$Attributes.style(overtimeStyle(blackClock))]),
                       _U.list([$Html.text(A2($Basics._op["++"],"black overtime: ",$Utils.toMmSs(blackClock.overtimeRemaining)))]))
                       ,A2($Html.p,
-                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.overtimeRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"white overtime: ",$Utils.toMmSs(whiteClock.overtimeRemaining)))]))]))
+                      _U.list([$Html$Attributes.style(overtimePeriodsStyle(blackClock))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"black overtime periods: ",$Basics.toString(blackClock.periodsRemaining)))]))]))
               ,A2($Html.div,
-              _U.list([$Html$Attributes.$class("clear")]),
+              _U.list([$Html$Attributes.$class("whiteClock")]),
               _U.list([A2($Html.p,
-                      _U.list([$Html$Attributes.style(blackTimeStyle(blackClock.periodsRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"black periods: ",$Basics.toString(blackClock.periodsRemaining)))]))
+                      _U.list([$Html$Attributes.style(timeStyle(whiteClock))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white time: ",$Utils.toMmSs(whiteClock.secondsRemaining)))]))
                       ,A2($Html.p,
-                      _U.list([$Html$Attributes.style(whiteTimeStyle(whiteClock.periodsRemaining))]),
-                      _U.list([$Html.text(A2($Basics._op["++"],"white periods: ",$Basics.toString(whiteClock.periodsRemaining)))]))]))]));
+                      _U.list([$Html$Attributes.style(overtimeStyle(whiteClock))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white overtime: ",$Utils.toMmSs(whiteClock.overtimeRemaining)))]))
+                      ,A2($Html.p,
+                      _U.list([$Html$Attributes.style(overtimePeriodsStyle(whiteClock))]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"white overtime periods: ",$Basics.toString(whiteClock.periodsRemaining)))]))]))]));
    });
    var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
@@ -10952,6 +10953,9 @@ Elm.Go.make = function (_elm) {
       var periodsRemaining = _U.eq(overtimeRemaining,0) ? clock.periodsRemaining - 1 : clock.periodsRemaining;
       return _U.update(clock,{secondsRemaining: secondsRemaining,overtimeRemaining: overtimeRemaining,periodsRemaining: periodsRemaining});
    };
+   var resetOvertimeClock = F3(function (forPlayer,currentPlayer,clock) {
+      return _U.eq(forPlayer,currentPlayer) && _U.eq(clock.secondsRemaining,0) ? _U.update(clock,{overtimeRemaining: initialOvertime}) : clock;
+   });
    var initialTime = 180;
    var Model = function (a) {
       return function (b) {
@@ -11065,7 +11069,9 @@ Elm.Go.make = function (_elm) {
       ,currentMove: model.currentMove + 1
       ,blackCaptures: model.blackCaptures + blackCaptures
       ,whiteCaptures: model.whiteCaptures + whiteCaptures
-      ,previousBoards: A2($List._op["::"],model.board,model.previousBoards)}) : model;
+      ,previousBoards: A2($List._op["::"],model.board,model.previousBoards)
+      ,blackClock: A3(resetOvertimeClock,Black,model.currentPlayer,model.blackClock)
+      ,whiteClock: A3(resetOvertimeClock,White,model.currentPlayer,model.whiteClock)}) : model;
       return updatedModel;
    });
    var update = F2(function (action,model) {
@@ -11141,6 +11147,7 @@ Elm.Go.make = function (_elm) {
                            ,getStoneAt: getStoneAt
                            ,isLiberty: isLiberty
                            ,attemptMove: attemptMove
+                           ,resetOvertimeClock: resetOvertimeClock
                            ,getGroupFromLocation: getGroupFromLocation
                            ,doesGroupHaveLiberties: doesGroupHaveLiberties
                            ,getCaptures: getCaptures
@@ -11158,6 +11165,7 @@ Elm.Go.make = function (_elm) {
                            ,viewPoint: viewPoint
                            ,boardDimensions: boardDimensions
                            ,boardStyle: boardStyle
-                           ,blackTimeStyle: blackTimeStyle
-                           ,whiteTimeStyle: whiteTimeStyle};
+                           ,timeStyle: timeStyle
+                           ,overtimeStyle: overtimeStyle
+                           ,overtimePeriodsStyle: overtimePeriodsStyle};
 };
