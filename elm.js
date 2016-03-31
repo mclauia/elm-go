@@ -10882,7 +10882,7 @@ Elm.Go.make = function (_elm) {
                       _U.list([$Html$Attributes.style(overtimePeriodsStyle(whiteClock))]),
                       _U.list([$Html.text(A2($Basics._op["++"],"white overtime periods: ",$Basics.toString(whiteClock.periodsRemaining)))]))]))]));
    });
-   var getStoneAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
+   var getPointAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
       return _U.list([{ctor: "_Tuple2",_0: $Matrix.row(location) - 1,_1: $Matrix.col(location)}
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location) + 1,_1: $Matrix.col(location)}
@@ -10915,7 +10915,7 @@ Elm.Go.make = function (_elm) {
               _U.list([A2($Html.button,_U.list([A2($Html$Events.onClick,address,Reset(9))]),_U.list([$Html.text("New 9x9 game")]))]))]));
    });
    var Move = function (a) {    return {ctor: "Move",_0: a};};
-   var viewPoint = F4(function (address,stone,location,boardSize) {
+   var viewPoint = F4(function (address,point,location,boardSize) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("point"),A2($Html$Events.onClick,address,Move(location))]),
       A2($List.append,
@@ -10923,7 +10923,7 @@ Elm.Go.make = function (_elm) {
       _U.list([A2($Html.div,
       _U.list([$Html$Attributes.$class("stone")]),
       _U.list([function () {
-         var _p1 = stone;
+         var _p1 = point;
          switch (_p1.ctor)
          {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"));
             case "WhiteStone": var _p2 = location;
@@ -10941,11 +10941,11 @@ Elm.Go.make = function (_elm) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle(model.boardSize))]),
       A2($List.indexedMap,
-      F2(function (i,stone) {    return A4(viewPoint,address,stone,A2(getLocationFromIndex,i,model.boardSize),model.boardSize);}),
+      F2(function (i,point) {    return A4(viewPoint,address,point,A2(getLocationFromIndex,i,model.boardSize),model.boardSize);}),
       $Matrix.flatten(model.board)));
    });
    var initialOvertimePeriods = 3;
-   var initialOvertime = 30;
+   var initialOvertime = 10;
    var getUpdatedClock = function (clock) {
       var isPlayerInOvertime = _U.eq(clock.secondsRemaining,0) && _U.cmp(clock.periodsRemaining,0) > 0;
       var secondsRemaining = $Basics.not(isPlayerInOvertime) ? clock.secondsRemaining - 1 : clock.secondsRemaining;
@@ -10956,7 +10956,7 @@ Elm.Go.make = function (_elm) {
    var resetOvertimeClock = F3(function (forPlayer,currentPlayer,clock) {
       return _U.eq(forPlayer,currentPlayer) && _U.eq(clock.secondsRemaining,0) ? _U.update(clock,{overtimeRemaining: initialOvertime}) : clock;
    });
-   var initialTime = 180;
+   var initialTime = 5;
    var Model = function (a) {
       return function (b) {
          return function (c) {
@@ -10991,7 +10991,7 @@ Elm.Go.make = function (_elm) {
    var initialClock = A3(Clock,initialTime,initialOvertime,initialOvertimePeriods);
    var Liberty = {ctor: "Liberty"};
    var initialBoard = function (boardSize) {    return A2($Matrix.square,boardSize,function (_p3) {    return Liberty;});};
-   var isLiberty = F2(function (location,board) {    return _U.eq(A2(getStoneAt,location,board),$Maybe.Just(Liberty));});
+   var isLiberty = F2(function (location,board) {    return _U.eq(A2(getPointAt,location,board),$Maybe.Just(Liberty));});
    var doesGroupHaveLiberties = F2(function (group,board) {
       var groupNeighbors = A2($List.concatMap,function (stoneLocation) {    return getNeighborLocations(stoneLocation);},group);
       return A2($List.any,function (location) {    return A2(isLiberty,location,board);},groupNeighbors);
@@ -11000,7 +11000,7 @@ Elm.Go.make = function (_elm) {
       var nextInspected = A2($List._op["::"],location,inspected);
       var allNeighbors = getNeighborLocations(location);
       var friendlyStone = function () {
-         var _p4 = A2(getStoneAt,location,board);
+         var _p4 = A2(getPointAt,location,board);
          if (_p4.ctor === "Nothing") {
                return Liberty;
             } else {
@@ -11008,7 +11008,7 @@ Elm.Go.make = function (_elm) {
             }
       }();
       var isUnvisitedFriendlyNeighbor = function (neighborLocation) {
-         return _U.eq(A2(getStoneAt,neighborLocation,board),$Maybe.Just(friendlyStone)) && $Basics.not(A2($List.member,neighborLocation,inspected));
+         return _U.eq(A2(getPointAt,neighborLocation,board),$Maybe.Just(friendlyStone)) && $Basics.not(A2($List.member,neighborLocation,inspected));
       };
       var unvisitedFriendlyNeighbors = A2($List.filter,isUnvisitedFriendlyNeighbor,allNeighbors);
       return A2($List.append,
@@ -11040,7 +11040,7 @@ Elm.Go.make = function (_elm) {
       var newBoard = A3($Matrix.set,location,stone,board);
       var enemyNeighbors = A2($List.filter,
       function (neighborLocation) {
-         return _U.eq(A2(getStoneAt,neighborLocation,newBoard),$Maybe.Just(enemy));
+         return _U.eq(A2(getPointAt,neighborLocation,newBoard),$Maybe.Just(enemy));
       },
       neighbors);
       var enemyGroups = A2($List.map,function (neighborLocation) {    return A3(getGroupFromLocation,neighborLocation,board,_U.list([]));},enemyNeighbors);
@@ -11057,9 +11057,9 @@ Elm.Go.make = function (_elm) {
       var potentialBoard = A3($Matrix.set,location,stone,model.board);
       var potentialGroup = A3(getGroupFromLocation,location,potentialBoard,_U.list([]));
       var potentialCaptures = A3(getCaptures,location,potentialBoard,model.currentPlayer);
-      var potentialBoardAfterCapture = A2(removeStonesFromBoard,potentialCaptures,potentialBoard);
       var blackCaptures = _U.eq(model.currentPlayer,White) ? 0 : $List.length(potentialCaptures);
       var whiteCaptures = _U.eq(model.currentPlayer,Black) ? 0 : $List.length(potentialCaptures);
+      var potentialBoardAfterCapture = A2(removeStonesFromBoard,potentialCaptures,potentialBoard);
       var isLegalMove = _U.eq(A2($Matrix.get,location,model.board),$Maybe.Just(Liberty)) && ($Basics.not(A2($List.member,
       potentialBoardAfterCapture,
       model.previousBoards)) && (A2(doesGroupHaveLiberties,potentialGroup,potentialBoard) || $Basics.not($List.isEmpty(potentialCaptures))));
@@ -11144,7 +11144,7 @@ Elm.Go.make = function (_elm) {
                            ,decrementTime: decrementTime
                            ,getUpdatedClock: getUpdatedClock
                            ,getNeighborLocations: getNeighborLocations
-                           ,getStoneAt: getStoneAt
+                           ,getPointAt: getPointAt
                            ,isLiberty: isLiberty
                            ,attemptMove: attemptMove
                            ,resetOvertimeClock: resetOvertimeClock

@@ -62,9 +62,9 @@ main =
 
 type Player = Black | White
 
-type Stone = BlackStone | WhiteStone | Liberty
+type Point = BlackStone | WhiteStone | Liberty
 
-type alias Board = Matrix Stone
+type alias Board = Matrix Point
 
 type alias Group = List Location
 
@@ -232,8 +232,8 @@ getNeighborLocations location =
 
     Will return Nothing if this location is off the board
 -}
-getStoneAt : Location -> Board -> Maybe Stone
-getStoneAt location board =
+getPointAt : Location -> Board -> Maybe Point
+getPointAt location board =
   Matrix.get location board
 
 
@@ -241,7 +241,7 @@ getStoneAt location board =
 -}
 isLiberty : Location -> Board -> Bool
 isLiberty location board =
-  getStoneAt location board == Just Liberty
+  getPointAt location board == Just Liberty
 
 
 {-| Attempt to make this move.
@@ -263,11 +263,11 @@ attemptMove model location =
     potentialGroup =
       getGroupFromLocation location potentialBoard []
 
-    potentialBoardAfterCapture =
-      removeStonesFromBoard potentialCaptures potentialBoard
-
     potentialCaptures =
       getCaptures location potentialBoard model.currentPlayer
+
+    potentialBoardAfterCapture =
+      removeStonesFromBoard potentialCaptures potentialBoard
 
     blackCaptures =
       if model.currentPlayer == White then
@@ -336,7 +336,7 @@ getGroupFromLocation : Location -> Board -> Group -> Group
 getGroupFromLocation location board inspected =
   let
     friendlyStone =
-      case getStoneAt location board of
+      case getPointAt location board of
         Nothing ->
           Liberty
         Just stone ->
@@ -345,7 +345,7 @@ getGroupFromLocation location board inspected =
     allNeighbors = getNeighborLocations location
 
     isUnvisitedFriendlyNeighbor neighborLocation =
-      getStoneAt neighborLocation board == Just friendlyStone
+      getPointAt neighborLocation board == Just friendlyStone
       && (not <| member neighborLocation inspected)
 
     unvisitedFriendlyNeighbors =
@@ -401,7 +401,7 @@ getCaptures location board player =
 
     enemyNeighbors =
       filter (\neighborLocation ->
-        getStoneAt neighborLocation newBoard == Just enemy
+        getPointAt neighborLocation newBoard == Just enemy
       ) neighbors
 
     -- a list of lists
@@ -452,8 +452,8 @@ viewBoard address model =
     (
       model.board
         |> Matrix.flatten
-        |> indexedMap (\i stone ->
-          viewPoint address stone (getLocationFromIndex i model.boardSize) model.boardSize
+        |> indexedMap (\i point ->
+          viewPoint address point (getLocationFromIndex i model.boardSize) model.boardSize
         )
     )
 
@@ -603,14 +603,14 @@ isStarPoint location boardSize =
   )
 
 
-viewPoint : Signal.Address Action -> Stone -> Location -> Int -> Html
-viewPoint address stone location boardSize =
+viewPoint : Signal.Address Action -> Point -> Location -> Int -> Html
+viewPoint address point location boardSize =
   div [ class "point"
     , onClick address (Move location)
   ] (List.append
     (drawPointLines location boardSize)
     [ div [ class "stone" ] [
-      case stone of
+      case point of
         -- stone images credit https://github.com/zpmorgan/gostones-render
         BlackStone ->
           image 32 32 "imgs/b.png"
