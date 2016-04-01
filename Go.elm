@@ -416,7 +416,7 @@ getCaptures location board player =
         not <| doesGroupHaveLiberties enemyGroup newBoard
       ) enemyGroups
   in
-    concatMap (\group -> group) enemyGroupsWithoutLiberties
+    concat enemyGroupsWithoutLiberties
       |> Set.fromList
       |> Set.toList
 
