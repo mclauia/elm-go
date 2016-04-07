@@ -8,7 +8,11 @@
     ],
     "exposed-modules": [],
     "dependencies": {
+        "NoRedInk/elm-decode-pipeline": "1.0.0 <= v < 2.0.0",
+        "ThomasWeiser/elmfire": "1.0.5 <= v < 2.0.0",
+        "ThomasWeiser/elmfire-extra": "1.0.3 <= v < 2.0.0",
         "chendrix/elm-matrix": "3.1.0 <= v < 4.0.0",
+        "circuithub/elm-json-extra": "2.2.1 <= v < 3.0.0",
         "elm-lang/core": "3.0.0 <= v < 4.0.0",
         "evancz/elm-effects": "2.0.1 <= v < 3.0.0",
         "evancz/elm-html": "4.0.1 <= v < 5.0.0",
