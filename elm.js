@@ -12795,6 +12795,7 @@ Elm.TableView.make = function (_elm) {
    $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $Html$Events = Elm.Html.Events.make(_elm),
    $List = Elm.List.make(_elm),
    $Matrix = Elm.Matrix.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
@@ -12829,9 +12830,9 @@ Elm.TableView.make = function (_elm) {
                      ,A2($Html.div,_U.list([$Html$Attributes.$class($Basics.not(isWestEdge) ? "east" : "")]),_U.list([]))
                      ,A2($Html.div,_U.list([$Html$Attributes.$class(isStarPoint(location) ? "starPoint" : "")]),_U.list([]))]);
    };
-   var viewPoint = F2(function (point,location) {
+   var viewPoint = F4(function (address,action,point,location) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.$class("point")]),
+      _U.list([$Html$Attributes.$class("point"),A2($Html$Events.onClick,address,action(location))]),
       A2($List.append,
       drawPointLines(location),
       _U.list([A2($Html.div,
@@ -12862,10 +12863,12 @@ Elm.TableView.make = function (_elm) {
               _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
               _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
    });
+   var toJapanese = function (player) {    var _p2 = player;switch (_p2) {case "Black": return "黒";case "White": return "白";default: return "";}};
    var viewCurrentPlayer = function (currentPlayer) {
+      var playerStr = $Basics.toString(currentPlayer);
       return A2($Html.h3,
-      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq($Basics.toString(currentPlayer),"Black") ? "left" : "right"}]))]),
-      _U.list([$Html.text(A2($Basics._op["++"],$Basics.toString(currentPlayer),"\'s move"))]));
+      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq(playerStr,"Black") ? "left" : "right"}]))]),
+      _U.list([$Html.text(A2($Basics._op["++"],playerStr,A2($Basics._op["++"],"\'s move / ",A2($Basics._op["++"],toJapanese(playerStr),"の番"))))]));
    };
    var viewSidePane = function (model) {
       return A2($Html.div,
@@ -12881,21 +12884,22 @@ Elm.TableView.make = function (_elm) {
               _U.list([$Html$Attributes.$class("clear")]),
               _U.list([A2($Html.a,_U.list([$Html$Attributes.href("https://github.com/mclauia/elm-goban")]),_U.list([$Html.text("Project source")]))]))])))));
    };
-   var viewBoard = function (model) {
+   var viewBoard = F3(function (address,action,model) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle)]),
-      A2($List.indexedMap,F2(function (i,point) {    return A2(viewPoint,point,getLocationFromIndex(i));}),$Matrix.flatten(model.board)));
-   };
-   var view = function (model) {
+      A2($List.indexedMap,F2(function (i,point) {    return A4(viewPoint,address,action,point,getLocationFromIndex(i));}),$Matrix.flatten(model.board)));
+   });
+   var view = F3(function (address,action,model) {
       return A2($Html.div,
       _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "1040px"}]))]),
-      _U.list([viewBoard(model),viewSidePane(model)]));
-   };
+      _U.list([A3(viewBoard,address,action,model),viewSidePane(model)]));
+   });
    return _elm.TableView.values = {_op: _op
                                   ,view: view
                                   ,viewBoard: viewBoard
                                   ,viewSidePane: viewSidePane
                                   ,viewCurrentPlayer: viewCurrentPlayer
+                                  ,toJapanese: toJapanese
                                   ,viewCaptures: viewCaptures
                                   ,getLocationFromIndex: getLocationFromIndex
                                   ,drawPointLines: drawPointLines
@@ -12934,16 +12938,10 @@ Elm.Main.make = function (_elm) {
    var viewTables = F2(function (tables,address) {
       return A2($Html.div,_U.list([]),A2($List.map,function (table) {    return A2(viewTable,table,address);},tables));
    });
-   var updateState = F2(function (action,model) {
-      var _p2 = action;
-      switch (_p2.ctor)
-      {case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
-         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{tables: A2($Debug.log,"tables",_p2._0)}),_1: $Effects.none};
-         default: return {ctor: "_Tuple2",_0: model,_1: $Effects.none};}
-   });
+   var AttemptMove = F2(function (a,b) {    return {ctor: "AttemptMove",_0: a,_1: b};});
    var NoGuiEvent = {ctor: "NoGuiEvent"};
    var FromEffect = {ctor: "FromEffect"};
-   var kickOff = function (_p3) {    return $Effects.task(A2($Task.map,$Basics.always(FromEffect),$Task.toMaybe(_p3)));};
+   var kickOff = function (_p2) {    return $Effects.task(A2($Task.map,$Basics.always(FromEffect),$Task.toMaybe(_p2)));};
    var FromServer = function (a) {    return {ctor: "FromServer",_0: a};};
    var FromGui = function (a) {    return {ctor: "FromGui",_0: a};};
    var view = F2(function (actionAddress,model) {
@@ -12954,11 +12952,12 @@ Elm.Main.make = function (_elm) {
       _U.list([A2($Html.section,
       _U.list([$Html$Attributes.$class("table")]),
       _U.list([function () {
-         var _p4 = maybeTable;
-         if (_p4.ctor === "Just") {
-               return A2($Html$Lazy.lazy,$TableView.view,_p4._0);
+         var _p3 = maybeTable;
+         if (_p3.ctor === "Just") {
+               var _p4 = _p3._0;
+               return A4($Html$Lazy.lazy3,$TableView.view,guiAddress,AttemptMove(_p4),_p4);
             } else {
-               return $Html.text("no table");
+               return $Html.text("loading~");
             }
       }()]))]));
    });
@@ -12974,6 +12973,20 @@ Elm.Main.make = function (_elm) {
    var initialTask = _p5._0;
    var inputTables = _p5._1;
    var initialEffect = kickOff(initialTask);
+   var effectTables = function (operation) {    return kickOff(A2($ElmFire$Op.operate,syncConfig,operation));};
+   var updateState = F2(function (action,model) {
+      var _p6 = action;
+      switch (_p6.ctor)
+      {case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{tables: _p6._0}),_1: $Effects.none};
+         default: if (_p6._0.ctor === "NoGuiEvent") {
+                 return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+              } else {
+                 return {ctor: "_Tuple2"
+                        ,_0: model
+                        ,_1: effectTables(A2($ElmFire$Op.update,"testKifu",$Maybe.map(function (table) {    return A2($Table.attemptMove,table,_p6._0._1);})))};
+              }}
+   });
    var config = {init: {ctor: "_Tuple2",_0: initialModel,_1: initialEffect}
                 ,update: updateState
                 ,view: view
@@ -12981,7 +12994,6 @@ Elm.Main.make = function (_elm) {
    var app = $StartApp.start(config);
    var runEffects = Elm.Native.Task.make(_elm).performSignal("runEffects",app.tasks);
    var main = app.html;
-   var effectTables = function (operation) {    return kickOff(A2($ElmFire$Op.operate,syncConfig,operation));};
    var firebase_foreign = "https://elm-goban.firebaseio.com/";
    return _elm.Main.values = {_op: _op
                              ,firebase_foreign: firebase_foreign
@@ -12999,6 +13011,7 @@ Elm.Main.make = function (_elm) {
                              ,FromServer: FromServer
                              ,FromEffect: FromEffect
                              ,NoGuiEvent: NoGuiEvent
+                             ,AttemptMove: AttemptMove
                              ,initialTask: initialTask
                              ,inputTables: inputTables
                              ,initialEffect: initialEffect

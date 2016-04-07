@@ -17,7 +17,7 @@ when the game is over...????
 
 --}
 
-import Table exposing (Table, Player, encodeTable, decodeTable)
+import Table exposing (Table, Player, attemptMove, encodeTable, decodeTable)
 import TableView
 import Matrix exposing (Matrix, Location, loc, row, col)
 
@@ -39,6 +39,8 @@ import ElmFire.Op
 import Json.Encode as En
 import Json.Decode as De exposing ((:=))
 import Json.Decode.Extra as DeX exposing ((|:))
+
+import Matrix exposing (Location)
 
 import Debug exposing (log)
 
@@ -103,8 +105,8 @@ type Action
 --------------------------------------------------------------------------------
 -- Events originating from the user interacting with the html page
 
-type GuiEvent
-  = NoGuiEvent
+type GuiEvent = NoGuiEvent
+  | AttemptMove Table Location
 
 type alias GuiAddress = Address GuiEvent
 
@@ -176,7 +178,7 @@ updateState action model =
       )
 
     FromServer tables ->
-      ( { model | tables = log "tables" tables }
+      ( { model | tables = tables }
       , Effects.none
       )
 
@@ -186,8 +188,14 @@ updateState action model =
       )
 
     --FromGui (UpdateKifu id) ->
-    --  , effectTables <| ElmFire.Op.update id createKifuForTable
 
+    FromGui (AttemptMove table location) ->
+      ( model
+      , effectTables <| ElmFire.Op.update "testKifu"
+        ( Maybe.map
+            (\table -> Table.attemptMove table location)
+        )
+      )
 
 --------------------------------------------------------------------------------
 
@@ -202,9 +210,9 @@ view actionAddress model =
         [
         case maybeTable of
           Just table ->
-            lazy TableView.view table
+            lazy3 TableView.view guiAddress (AttemptMove table) table
           Nothing ->
-            text "no table"
+            text "loading~"
         ]
       ]
 

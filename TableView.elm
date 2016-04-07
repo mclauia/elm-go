@@ -15,23 +15,23 @@ import Table exposing (Table, Point, Player)
 type alias Style = (String, String)
 
 
-view : Table -> Html
-view model =
+--view : Table -> Html
+view address action model =
   div
     [ style [ ("width", "1040px") ] ]
-    [ viewBoard model
+    [ viewBoard address action model
     , viewSidePane model
     ]
 
 
-viewBoard : Table -> Html
-viewBoard model =
+--viewBoard : Table -> Html
+viewBoard address action model =
   div [ class "board", style boardStyle ]
     (
       model.board
         |> Matrix.flatten
         |> indexedMap (\i point ->
-          viewPoint point (getLocationFromIndex i)
+          viewPoint address action point (getLocationFromIndex i)
         )
     )
 
@@ -56,11 +56,29 @@ viewSidePane model =
 
 viewCurrentPlayer : Player -> Html
 viewCurrentPlayer currentPlayer =
-  h3
-    [ style [
-      ("float", if toString currentPlayer == "Black" then "left" else "right")
-    ] ]
-    [ text (toString currentPlayer ++ "'s move") ]
+  let
+    playerStr = toString currentPlayer
+  in
+    h3
+      [ style [
+        ("float", if playerStr == "Black" then "left" else "right")
+      ] ]
+      [ text (
+        playerStr ++ "'s move / "
+        ++ toJapanese playerStr ++ "の番"
+        )
+      ]
+
+
+toJapanese : String -> String
+toJapanese player =
+  case player of
+    "Black" ->
+      "黒"
+    "White" ->
+      "白"
+    _ ->
+      ""
 
 
 viewCaptures : Int -> Int -> Html
@@ -105,10 +123,10 @@ isStarPoint location =
     ]
 
 
-viewPoint : Point -> Location -> Html
-viewPoint point location =
+--viewPoint : Point -> Location -> Html
+viewPoint address action point location =
   div [ class "point"
-    --, onClick address (Move location)
+    , onClick address (action location)
   ] (List.append
     (drawPointLines location)
     [ div [ class "stone" ] [
