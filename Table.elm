@@ -46,8 +46,8 @@ initialTable =
     1
     0
     0
-    ""
-    ""
+    "anonymous / 無名"
+    "anonymous / 無名"
     --[]
 
 
@@ -269,8 +269,8 @@ decodeTable =
     |> required "currentMove" De.int
     |> required "whiteCaptures" De.int
     |> required "blackCaptures" De.int
-    |> optional "blackPlayer" De.string "anonymous / 無名"
-    |> optional "whitePlayer" De.string "anonymous / 無名"
+    |> optional "blackPlayer" De.string "" -- optional for backwards compat
+    |> optional "whitePlayer" De.string "" -- optional for backwards compat
 
 encodeTable : Table -> Json.Value
 encodeTable table =

@@ -174,22 +174,16 @@ viewPreviewPoint point location =
 
 {------------- STYLES -------------}
 
-fullBoardDimensions : String
-fullBoardDimensions = toString (19 * 30)
-
 boardStyle : List Style
 boardStyle =
-  [ ("width", (fullBoardDimensions ++ "px"))
-  , ("height", (fullBoardDimensions ++ "px"))
+  [ ("width", "580px")
+  , ("height", "580px")
   ]
 
 
-previewBoardDimensions : String
-previewBoardDimensions = toString (19 * 15)
-
 previewBoardStyle : List Style
 previewBoardStyle =
-  [ ("width", (previewBoardDimensions ++ "px"))
-  , ("height", (previewBoardDimensions ++ "px"))
+  [ ("width", "295px")
+  , ("height", "295px")
   , ("cursor", "pointer")
   ]

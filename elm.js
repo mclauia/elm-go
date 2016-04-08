@@ -9561,6 +9561,341 @@ Elm.ElmFire.make = function (_elm) {
                                 ,UserDenied: UserDenied
                                 ,OtherAuthenticationError: OtherAuthenticationError};
 };
+/* @flow */
+/* global Elm, Firebase, F2, F3, F4 */
+
+Elm.Native.ElmFire = Elm.Native.ElmFire || {};
+Elm.Native.ElmFire.Auth = {};
+Elm.Native.ElmFire.Auth.make = function (localRuntime) {
+  "use strict";
+
+  localRuntime.Native = localRuntime.Native || {};
+  localRuntime.Native.ElmFire = localRuntime.Native.ElmFire || {};
+  localRuntime.Native.ElmFire.Auth = localRuntime.Native.ElmFire.Auth || {};
+  if (localRuntime.Native.ElmFire.Auth.values) {
+    return localRuntime.Native.ElmFire.Auth.values;
+  }
+
+  var Utils = Elm.Native.Utils.make (localRuntime);
+  var Task = Elm.Native.Task.make (localRuntime);
+
+  var Date = Elm.Date.make (localRuntime);
+  var Time = Elm.Time.make (localRuntime);
+
+  var ElmFire = Elm.Native.ElmFire.make (localRuntime);
+  var asMaybe = ElmFire.asMaybe;
+  var getRef = ElmFire.getRef;
+  var pleaseReportThis = ElmFire.pleaseReportThis;
+
+	function toObject (listOfPairs)
+ {
+   var obj = {};
+   while (listOfPairs.ctor !== '[]')
+   {
+     var pair = listOfPairs._0;
+     obj [pair._0] = pair._1;
+     listOfPairs = listOfPairs._1;
+   }
+   return obj;
+ }
+
+  function authError2elm (tag, description) {
+    return {
+      tag: { ctor: 'AuthError', _0: { ctor: tag } },
+      description: description
+    };
+  }
+
+  var fbAuthErrorMap = {
+    AUTHENTICATION_DISABLED: 'AuthenticationDisabled',
+    EMAIL_TAKEN: 'EmailTaken',
+    INVALID_ARGUMENTS: 'InvalidArguments',
+    INVALID_CONFIGURATION: 'InvalidConfiguration',
+    INVALID_CREDENTIALS: 'InvalidCredentials',
+    INVALID_EMAIL: 'InvalidEmail',
+    INVALID_ORIGIN: 'InvalidOrigin',
+    INVALID_PASSWORD: 'InvalidPassword',
+    INVALID_PROVIDER: 'InvalidProvider',
+    INVALID_TOKEN: 'InvalidToken',
+    INVALID_USER: 'InvalidUser',
+    NETWORK_ERROR: 'NetworkError',
+    PROVIDER_ERROR: 'ProviderError',
+    TRANSPORT_UNAVAILABLE: 'TransportUnavailable',
+    UNKNOWN_ERROR: 'UnknownError',
+    USER_CANCELLED: 'UserCancelled',
+    USER_DENIED: 'UserDenied'
+  };
+
+  function fbAuthTaskError (fbAuthError) {
+    var tag = fbAuthErrorMap [fbAuthError.code];
+    if (! tag) {
+      tag = 'OtherAuthenticationError';
+    }
+    return authError2elm (tag, fbAuthError .toString ());
+  }
+
+  function fbAuthTaskFail (fbAuthError) {
+    return Task .fail (fbAuthTaskError (fbAuthError));
+  }
+
+  function exAuthTaskFail (exception) {
+    return Task.fail (authError2elm ('OtherAuthenticationError', exception.toString ()));
+  }
+
+  function auth2elm (fbAuth) {
+    var specifics = {};
+    if (fbAuth.hasOwnProperty (fbAuth.provider)) {
+      specifics = fbAuth [fbAuth.provider];
+    }
+    return {
+      uid: fbAuth .uid,
+      provider: fbAuth .provider,
+      token: fbAuth .token,
+      expires: Date .fromTime (fbAuth .expires * Time .second),
+      auth: JSON .parse (JSON .stringify (fbAuth .auth)),
+      specifics: specifics
+    };
+  }
+
+  function maybeAuth2elm (fbAuth) {
+    if (fbAuth) {
+      return { ctor: 'Just', _0: auth2elm (fbAuth) };
+    } else {
+      return { ctor: 'Nothing' };
+    }
+  }
+
+  function onAuthCallback (fbAuth) {
+    Task .perform (this.createResponseTask (maybeAuth2elm (fbAuth)));
+  }
+
+  function subscribeAuth (createResponseTask, location) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location, callback);
+      if (ref) {
+        var context = { createResponseTask: createResponseTask };
+        try { ref.onAuth (onAuthCallback, context); }
+        catch (exception) {
+          callback (exAuthTaskFail (exception));
+          return;
+        }
+        callback (Task.succeed (Utils.Tuple0));
+      }
+    });
+  }
+
+  function unsubscribeAuth (location) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location, callback);
+      if (ref) {
+        try {
+          ref.offAuth (onAuthCallback);
+        }
+        catch (exception) {
+          callback (exAuthTaskFail (exception));
+          return;
+        }
+        callback (Task.succeed (Utils.Tuple0));
+      }
+    });
+  }
+
+  function getAuth (location) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location, callback);
+      if (ref) {
+        var auth;
+        try { auth = ref .getAuth (); }
+        catch (exception) {
+          callback (exAuthTaskFail (exception));
+          return;
+        }
+        callback (Task.succeed (maybeAuth2elm (auth)));
+      }
+    });
+  }
+
+  function authenticate (location, listOfOptions, id) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location, callback);
+      if (ref) {
+        var options = toObject (listOfOptions);
+        var onComplete = function (err, auth) {
+          if (err) {
+            callback (fbAuthTaskFail (err));
+          } else {
+            callback (Task.succeed (auth2elm (auth)));
+          }
+        };
+        try {
+          switch (id.ctor) {
+            case 'Anonymous':
+              ref.authAnonymously (onComplete, options);
+              break;
+            case 'Password':
+              ref.authWithPassword ({ email: id._0, password: id._1 }, onComplete, options);
+              break;
+            case 'OAuthPopup':
+              ref.authWithOAuthPopup (id._0, onComplete, options);
+              break;
+            case 'OAuthRedirect':
+              ref.authWithOAuthRedirect (id._0, onComplete, options);
+              break;
+            case 'OAuthAccessToken':
+              ref.authWithOAuthToken (id._0, id._1, onComplete, options);
+              break;
+            case 'OAuthCredentials':
+              ref.authWithOAuthToken (id._0, toObject (id._1), onComplete, options);
+              break;
+            case 'CustomToken':
+              ref.authWithCustomToken (id._0, onComplete, options);
+              break;
+            default: throw ('Bad identification tag.' + pleaseReportThis);
+          }
+        }
+        catch (exception) { callback (exAuthTaskFail (exception)); }
+      }
+    });
+  }
+
+  function unauthenticate (location) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location);
+      if (ref) {
+        try { ref.unauth (); }
+        catch (exception) {
+          callback (exAuthTaskFail (exception));
+          return;
+        }
+        callback (Task.succeed (Utils.Tuple0));
+      }
+    });
+  }
+
+  function userOperation (location, op) {
+    return Task .asyncFunction (function (callback) {
+      var ref = getRef (location, callback);
+      if (ref) {
+        var onComplete = function (err, res) {
+          if (err) {
+            callback (fbAuthTaskFail (err));
+          } else {
+            callback (Task.succeed (asMaybe (res && res.uid)));
+          }
+        };
+        try {
+          switch (op.ctor) {
+            case 'CreateUser':
+              ref.createUser ({ email: op._0, password: op._1 }, onComplete);
+              break;
+            case 'RemoveUser':
+              ref.removeUser ({ email: op._0, password: op._1 }, onComplete);
+              break;
+            case 'ChangeEmail':
+              ref.changeEmail ({ oldEmail: op._0, password: op._1, newEmail: op._2 }, onComplete);
+              break;
+            case 'ChangePassword':
+              ref.changePassword ({ email: op._0, oldPassword: op._1, newPassword: op._2 }, onComplete);
+              break;
+            case 'ResetPassword':
+              ref.resetPassword ({ email: op._0 }, onComplete);
+              break;
+            default: throw ('Bad user operation tag.' + pleaseReportThis);
+          }
+        }
+        catch (exception) { callback (exAuthTaskFail (exception)); }
+      }
+    });
+  }
+
+  return localRuntime.Native.ElmFire.Auth.values =
+  { 	subscribeAuth: F2 (subscribeAuth)
+    ,	unsubscribeAuth: unsubscribeAuth
+    ,	getAuth: getAuth
+    , authenticate: F3 (authenticate)
+    , unauthenticate: unauthenticate
+    , userOperation: F2 (userOperation)
+  };
+};
+
+Elm.ElmFire = Elm.ElmFire || {};
+Elm.ElmFire.Auth = Elm.ElmFire.Auth || {};
+Elm.ElmFire.Auth.make = function (_elm) {
+   "use strict";
+   _elm.ElmFire = _elm.ElmFire || {};
+   _elm.ElmFire.Auth = _elm.ElmFire.Auth || {};
+   if (_elm.ElmFire.Auth.values) return _elm.ElmFire.Auth.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Date = Elm.Date.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $ElmFire = Elm.ElmFire.make(_elm),
+   $Json$Encode = Elm.Json.Encode.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Native$ElmFire$Auth = Elm.Native.ElmFire.Auth.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $Task = Elm.Task.make(_elm);
+   var _op = {};
+   var userOperation = $Native$ElmFire$Auth.userOperation;
+   var ResetPassword = function (a) {    return {ctor: "ResetPassword",_0: a};};
+   var resetPassword = ResetPassword;
+   var ChangePassword = F3(function (a,b,c) {    return {ctor: "ChangePassword",_0: a,_1: b,_2: c};});
+   var changePassword = ChangePassword;
+   var ChangeEmail = F3(function (a,b,c) {    return {ctor: "ChangeEmail",_0: a,_1: b,_2: c};});
+   var changeEmail = ChangeEmail;
+   var RemoveUser = F2(function (a,b) {    return {ctor: "RemoveUser",_0: a,_1: b};});
+   var removeUser = RemoveUser;
+   var CreateUser = F2(function (a,b) {    return {ctor: "CreateUser",_0: a,_1: b};});
+   var createUser = CreateUser;
+   var unauthenticate = $Native$ElmFire$Auth.unauthenticate;
+   var authenticate = $Native$ElmFire$Auth.authenticate;
+   var rememberNone = {ctor: "_Tuple2",_0: "remember",_1: "none"};
+   var rememberSessionOnly = {ctor: "_Tuple2",_0: "remember",_1: "sessionOnly"};
+   var rememberDefault = {ctor: "_Tuple2",_0: "remember",_1: "default"};
+   var CustomToken = function (a) {    return {ctor: "CustomToken",_0: a};};
+   var withCustomToken = CustomToken;
+   var OAuthCredentials = F2(function (a,b) {    return {ctor: "OAuthCredentials",_0: a,_1: b};});
+   var withOAuthCredentials = OAuthCredentials;
+   var OAuthAccessToken = F2(function (a,b) {    return {ctor: "OAuthAccessToken",_0: a,_1: b};});
+   var withOAuthAccessToken = OAuthAccessToken;
+   var OAuthRedirect = function (a) {    return {ctor: "OAuthRedirect",_0: a};};
+   var withOAuthRedirect = OAuthRedirect;
+   var OAuthPopup = function (a) {    return {ctor: "OAuthPopup",_0: a};};
+   var withOAuthPopup = OAuthPopup;
+   var Password = F2(function (a,b) {    return {ctor: "Password",_0: a,_1: b};});
+   var withPassword = Password;
+   var Anonymous = {ctor: "Anonymous"};
+   var asAnonymous = Anonymous;
+   var getAuth = $Native$ElmFire$Auth.getAuth;
+   var unsubscribeAuth = $Native$ElmFire$Auth.unsubscribeAuth;
+   var subscribeAuth = $Native$ElmFire$Auth.subscribeAuth;
+   var Authentication = F6(function (a,b,c,d,e,f) {    return {uid: a,provider: b,token: c,expires: d,auth: e,specifics: f};});
+   return _elm.ElmFire.Auth.values = {_op: _op
+                                     ,getAuth: getAuth
+                                     ,subscribeAuth: subscribeAuth
+                                     ,unsubscribeAuth: unsubscribeAuth
+                                     ,authenticate: authenticate
+                                     ,unauthenticate: unauthenticate
+                                     ,asAnonymous: asAnonymous
+                                     ,withPassword: withPassword
+                                     ,withOAuthPopup: withOAuthPopup
+                                     ,withOAuthRedirect: withOAuthRedirect
+                                     ,withOAuthAccessToken: withOAuthAccessToken
+                                     ,withOAuthCredentials: withOAuthCredentials
+                                     ,withCustomToken: withCustomToken
+                                     ,rememberDefault: rememberDefault
+                                     ,rememberSessionOnly: rememberSessionOnly
+                                     ,rememberNone: rememberNone
+                                     ,userOperation: userOperation
+                                     ,createUser: createUser
+                                     ,removeUser: removeUser
+                                     ,changeEmail: changeEmail
+                                     ,changePassword: changePassword
+                                     ,resetPassword: resetPassword
+                                     ,Authentication: Authentication};
+};
 Elm.ElmFire = Elm.ElmFire || {};
 Elm.ElmFire.Dict = Elm.ElmFire.Dict || {};
 Elm.ElmFire.Dict.make = function (_elm) {
@@ -12701,7 +13036,7 @@ Elm.Table.make = function (_elm) {
    var decodeBoard = $Json$Decode.array($Json$Decode.array(decodePoint));
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
-   var initialTable = A7(Table,A2($Matrix.square,19,function (_p4) {    return Liberty;}),Black,1,0,0,"","");
+   var initialTable = A7(Table,A2($Matrix.square,19,function (_p4) {    return Liberty;}),Black,1,0,0,"anonymous / 無名","anonymous / 無名");
    var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
       var neighbors = getNeighborLocations(location);
@@ -12751,11 +13086,11 @@ Elm.Table.make = function (_elm) {
    var decodeTable = A4($Json$Decode$Pipeline.optional,
    "whitePlayer",
    $Json$Decode.string,
-   "anonymous / 無名",
+   "",
    A4($Json$Decode$Pipeline.optional,
    "blackPlayer",
    $Json$Decode.string,
-   "anonymous / 無名",
+   "",
    A3($Json$Decode$Pipeline.required,
    "blackCaptures",
    $Json$Decode.$int,
@@ -12814,13 +13149,10 @@ Elm.TableView.make = function (_elm) {
    $Signal = Elm.Signal.make(_elm),
    $Table = Elm.Table.make(_elm);
    var _op = {};
-   var previewBoardDimensions = $Basics.toString(19 * 15);
-   var previewBoardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],previewBoardDimensions,"px")}
-                                   ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],previewBoardDimensions,"px")}
+   var previewBoardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "295px"}
+                                   ,{ctor: "_Tuple2",_0: "height",_1: "295px"}
                                    ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
-   var fullBoardDimensions = $Basics.toString(19 * 30);
-   var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: A2($Basics._op["++"],fullBoardDimensions,"px")}
-                            ,{ctor: "_Tuple2",_0: "height",_1: A2($Basics._op["++"],fullBoardDimensions,"px")}]);
+   var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "580px"},{ctor: "_Tuple2",_0: "height",_1: "580px"}]);
    var isStarPoint = function (location) {
       return A2($List.member,
       location,
@@ -12937,9 +13269,7 @@ Elm.TableView.make = function (_elm) {
                                   ,isStarPoint: isStarPoint
                                   ,viewPoint: viewPoint
                                   ,viewPreviewPoint: viewPreviewPoint
-                                  ,fullBoardDimensions: fullBoardDimensions
                                   ,boardStyle: boardStyle
-                                  ,previewBoardDimensions: previewBoardDimensions
                                   ,previewBoardStyle: previewBoardStyle};
 };
 Elm.Main = Elm.Main || {};
@@ -12953,11 +13283,12 @@ Elm.Main.make = function (_elm) {
    $Dict = Elm.Dict.make(_elm),
    $Effects = Elm.Effects.make(_elm),
    $ElmFire = Elm.ElmFire.make(_elm),
+   $ElmFire$Auth = Elm.ElmFire.Auth.make(_elm),
    $ElmFire$Dict = Elm.ElmFire.Dict.make(_elm),
    $ElmFire$Op = Elm.ElmFire.Op.make(_elm),
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
-   $Html$Lazy = Elm.Html.Lazy.make(_elm),
+   $Html$Events = Elm.Html.Events.make(_elm),
    $List = Elm.List.make(_elm),
    $Matrix = Elm.Matrix.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
@@ -12968,68 +13299,172 @@ Elm.Main.make = function (_elm) {
    $TableView = Elm.TableView.make(_elm),
    $Task = Elm.Task.make(_elm);
    var _op = {};
+   var Password = {ctor: "Password"};
+   var Username = {ctor: "Username"};
+   var Login = F2(function (a,b) {    return {ctor: "Login",_0: a,_1: b};});
+   var InputUpdated = F2(function (a,b) {    return {ctor: "InputUpdated",_0: a,_1: b};});
+   var viewLoginBar = F3(function (address,model,isAuthed) {
+      return $Basics.not(isAuthed) ? A2($Html.div,
+      _U.list([]),
+      _U.list([A2($Html.h4,_U.list([]),_U.list([$Html.text("Please log in to play")]))
+              ,A2($Html.form,
+              _U.list([$Html$Attributes.$class("form-inline")]),
+              _U.list([A2($Html.div,
+                      _U.list([$Html$Attributes.$class("form-group")]),
+                      _U.list([A2($Html.input,
+                      _U.list([A3($Html$Events.on,
+                              "input",
+                              $Html$Events.targetValue,
+                              function (str) {
+                                 return A2($Signal.message,address,A2(InputUpdated,Username,str));
+                              })
+                              ,$Html$Attributes.id("username-field")
+                              ,$Html$Attributes.type$("text")
+                              ,$Html$Attributes.value(model.loginForm.username)
+                              ,$Html$Attributes.placeholder("Username")
+                              ,$Html$Attributes.$class("form-control")]),
+                      _U.list([]))]))
+                      ,A2($Html.div,
+                      _U.list([$Html$Attributes.$class("form-group")]),
+                      _U.list([A2($Html.input,
+                      _U.list([A3($Html$Events.on,
+                              "input",
+                              $Html$Events.targetValue,
+                              function (str) {
+                                 return A2($Signal.message,address,A2(InputUpdated,Password,str));
+                              })
+                              ,$Html$Attributes.id("password-field")
+                              ,$Html$Attributes.type$("password")
+                              ,$Html$Attributes.value(model.loginForm.password)
+                              ,$Html$Attributes.placeholder("Password")
+                              ,$Html$Attributes.$class("form-control")]),
+                      _U.list([]))]))]))
+              ,A2($Html.button,
+              _U.list([$Html$Attributes.$class("btn btn-primary")
+                      ,A2($Html$Events.onClick,address,A2(Login,model.loginForm.username,model.loginForm.password))]),
+              _U.list([$Html.text("Login")]))])) : $Html.text("");
+   });
    var AttemptMove = F2(function (a,b) {    return {ctor: "AttemptMove",_0: a,_1: b};});
+   var UnselectTable = {ctor: "UnselectTable"};
+   var viewTable = F3(function (tables,id,address) {
+      var maybeTable = A2($Dict.get,id,tables);
+      var _p0 = maybeTable;
+      if (_p0.ctor === "Just") {
+            return A2($Html.div,
+            _U.list([]),
+            _U.list([A2($Html.button,
+                    _U.list([$Html$Attributes.$class("btn btn-warning"),A2($Html$Events.onClick,address,UnselectTable)]),
+                    _U.list([$Html.text("Return to Tables")]))
+                    ,A3($TableView.viewBoard,address,AttemptMove(id),_p0._0)]));
+         } else {
+            return $Html.text("loading~");
+         }
+   });
    var SelectTable = function (a) {    return {ctor: "SelectTable",_0: a};};
-   var viewTables = F2(function (tables,address) {
+   var NewTable = {ctor: "NewTable"};
+   var viewTables = F3(function (tables,address,isAuthed) {
       var tablesList = $Dict.toList(tables);
       return A2($Html.div,
       _U.list([]),
-      A2($List.map,function (_p0) {    var _p1 = _p0;return A3($TableView.viewPreviewBoard,address,SelectTable(_p1._0),_p1._1);},tablesList));
+      _U.list([isAuthed ? A2($Html.button,
+              _U.list([$Html$Attributes.$class("btn btn-success"),A2($Html$Events.onClick,address,NewTable)]),
+              _U.list([$Html.text("New Table")])) : $Html.text("")
+              ,A2($Html.div,
+              _U.list([]),
+              A2($List.map,function (_p1) {    var _p2 = _p1;return A3($TableView.viewPreviewBoard,address,SelectTable(_p2._0),_p2._1);},tablesList))]));
    });
    var NoGuiEvent = {ctor: "NoGuiEvent"};
    var FromEffect = {ctor: "FromEffect"};
-   var kickOff = function (_p2) {    return $Effects.task(A2($Task.map,$Basics.always(FromEffect),$Task.toMaybe(_p2)));};
+   var kickOff = function (_p3) {    return $Effects.task(A2($Task.map,$Basics.always(FromEffect),$Task.toMaybe(_p3)));};
+   var LoggedIn = function (a) {    return {ctor: "LoggedIn",_0: a};};
+   var login = function (task) {    return $Effects.task(A2($Task.map,LoggedIn,$Task.toMaybe(task)));};
+   var initialLogin = function (task) {
+      return $Effects.task(A2($Task.map,
+      function (maybeResult) {
+         var _p4 = A2($Debug.log,"maybe?",maybeResult);
+         if (_p4.ctor === "Just") {
+               return LoggedIn(_p4._0);
+            } else {
+               return FromEffect;
+            }
+      },
+      $Task.toMaybe(task)));
+   };
    var FromServer = function (a) {    return {ctor: "FromServer",_0: a};};
    var FromGui = function (a) {    return {ctor: "FromGui",_0: a};};
    var view = F2(function (actionAddress,model) {
+      var isAuthed = function () {    var _p5 = model.userAuth;if (_p5.ctor === "Just") {    return true;} else {    return false;}}();
       var guiAddress = A2($Signal.forwardTo,actionAddress,FromGui);
       var routeView = function () {
-         var _p3 = model.selectedTableId;
-         if (_p3.ctor === "Nothing") {
-               return A2(viewTables,model.tables,guiAddress);
+         var _p6 = model.selectedTableId;
+         if (_p6.ctor === "Nothing") {
+               return A3(viewTables,model.tables,guiAddress,isAuthed);
             } else {
-               var _p5 = _p3._0;
-               var maybeTable = A2($Dict.get,_p5,model.tables);
-               var _p4 = maybeTable;
-               if (_p4.ctor === "Just") {
-                     return A4($Html$Lazy.lazy3,$TableView.viewBoard,guiAddress,AttemptMove(_p5),_p4._0);
-                  } else {
-                     return $Html.text("loading~");
-                  }
+               return A3(viewTable,model.tables,_p6._0,guiAddress);
             }
       }();
       return A2($Html.div,
-      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "1040px"}]))]),
-      A2($Basics._op["++"],_U.list([A2($Html.h2,_U.list([]),_U.list([$Html.text("Elm Goban")]))]),_U.list([routeView])));
+      _U.list([$Html$Attributes.$class("container")]),
+      A2($Basics._op["++"],
+      _U.list([A2($Html.h2,_U.list([]),_U.list([$Html.text("Elm Goban")])),A3(viewLoginBar,guiAddress,model,isAuthed)]),
+      _U.list([routeView])));
    });
-   var initialModel = {tables: $Dict.empty,selectedTableId: $Maybe.Nothing};
-   var Liberty = {ctor: "Liberty"};
-   var WhiteStone = {ctor: "WhiteStone"};
-   var BlackStone = {ctor: "BlackStone"};
-   var Model = F2(function (a,b) {    return {tables: a,selectedTableId: b};});
+   var initialModel = {tables: $Dict.empty,selectedTableId: $Maybe.Nothing,userAuth: $Maybe.Nothing,loginForm: {username: "",password: ""}};
+   var LoginState = F2(function (a,b) {    return {username: a,password: b};});
+   var Model = F4(function (a,b,c,d) {    return {tables: a,selectedTableId: b,loginForm: c,userAuth: d};});
    var firebase_test = "https://elm-goban.firebaseio.com/";
    var firebaseUrl = firebase_test;
-   var syncConfig = {location: $ElmFire.fromUrl(firebaseUrl),orderOptions: $ElmFire.noOrder,encoder: $Table.encodeTable,decoder: $Table.decodeTable};
-   var _p6 = $ElmFire$Dict.mirror(syncConfig);
-   var initialTask = _p6._0;
-   var inputTables = _p6._1;
-   var initialEffect = kickOff(initialTask);
+   var firebaseGoban = $ElmFire.fromUrl(firebaseUrl);
+   var initAuth = initialLogin($ElmFire$Auth.getAuth(firebaseGoban));
+   var syncConfig = {location: firebaseGoban,orderOptions: $ElmFire.noOrder,encoder: $Table.encodeTable,decoder: $Table.decodeTable};
+   var _p7 = $ElmFire$Dict.mirror(syncConfig);
+   var initialTask = _p7._0;
+   var inputTables = _p7._1;
+   var initialEffect = $Effects.batch(_U.list([kickOff(initialTask),initAuth]));
    var effectTables = function (operation) {    return kickOff(A2($ElmFire$Op.operate,syncConfig,operation));};
    var updateState = F2(function (action,model) {
-      var _p7 = action;
-      switch (_p7.ctor)
-      {case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
-         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{tables: _p7._0}),_1: $Effects.none};
-         default: switch (_p7._0.ctor)
+      var _p8 = action;
+      switch (_p8.ctor)
+      {case "LoggedIn": var _p9 = _p8._0;
+           if (_p9.ctor === "Nothing") {
+                 return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+              } else {
+                 return {ctor: "_Tuple2",_0: _U.update(model,{userAuth: $Maybe.Just(_p9._0)}),_1: $Effects.none};
+              }
+         case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{tables: _p8._0}),_1: $Effects.none};
+         default: switch (_p8._0.ctor)
            {case "NoGuiEvent": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+              case "NewTable": return {ctor: "_Tuple2",_0: model,_1: effectTables($ElmFire$Op.push($Table.initialTable))};
+              case "UnselectTable": return {ctor: "_Tuple2",_0: _U.update(model,{selectedTableId: $Maybe.Nothing}),_1: $Effects.none};
+              case "SelectTable": var _p10 = model.userAuth;
+                if (_p10.ctor === "Nothing") {
+                      return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
+                   } else {
+                      return {ctor: "_Tuple2",_0: _U.update(model,{selectedTableId: $Maybe.Just(_p8._0._0)}),_1: $Effects.none};
+                   }
               case "AttemptMove": return {ctor: "_Tuple2"
                                          ,_0: model
                                          ,_1: effectTables(A2($ElmFire$Op.update,
-                                         "testKifu2",
-                                         $Maybe.map(function (id) {    return A2($Table.attemptMove,id,_p7._0._1);})))};
-              default: var _p8 = _p7._0._0;
-                var thing = A2($Debug.log,"selected id",_p8);
-                return {ctor: "_Tuple2",_0: _U.update(model,{selectedTableId: $Maybe.Just(_p8)}),_1: $Effects.none};}}
+                                         _p8._0._0,
+                                         $Maybe.map(function (id) {    return A2($Table.attemptMove,id,_p8._0._1);})))};
+              case "Login": return {ctor: "_Tuple2"
+                                   ,_0: _U.update(model,{loginForm: {username: model.loginForm.username,password: ""}})
+                                   ,_1: login(A3($ElmFire$Auth.authenticate,
+                                   firebaseGoban,
+                                   _U.list([]),
+                                   A2($ElmFire$Auth.withPassword,A2($Debug.log,"user",_p8._0._0),A2($Debug.log,"pass",_p8._0._1))))};
+              default: var _p12 = _p8._0._1;
+                var loginForm = model.loginForm;
+                var updatedLoginFormState = function () {
+                   var _p11 = _p8._0._0;
+                   if (_p11.ctor === "Username") {
+                         return _U.update(loginForm,{username: _p12});
+                      } else {
+                         return _U.update(loginForm,{password: _p12});
+                      }
+                }();
+                return {ctor: "_Tuple2",_0: _U.update(model,{loginForm: updatedLoginFormState}),_1: $Effects.none};}}
    });
    var config = {init: {ctor: "_Tuple2",_0: initialModel,_1: initialEffect}
                 ,update: updateState
@@ -13043,27 +13478,38 @@ Elm.Main.make = function (_elm) {
                              ,firebase_foreign: firebase_foreign
                              ,firebase_test: firebase_test
                              ,firebaseUrl: firebaseUrl
+                             ,firebaseGoban: firebaseGoban
                              ,config: config
                              ,app: app
                              ,main: main
                              ,Model: Model
-                             ,BlackStone: BlackStone
-                             ,WhiteStone: WhiteStone
-                             ,Liberty: Liberty
+                             ,LoginState: LoginState
                              ,initialModel: initialModel
                              ,FromGui: FromGui
                              ,FromServer: FromServer
+                             ,LoggedIn: LoggedIn
                              ,FromEffect: FromEffect
                              ,NoGuiEvent: NoGuiEvent
+                             ,NewTable: NewTable
                              ,SelectTable: SelectTable
+                             ,UnselectTable: UnselectTable
                              ,AttemptMove: AttemptMove
+                             ,InputUpdated: InputUpdated
+                             ,Login: Login
+                             ,Username: Username
+                             ,Password: Password
                              ,initialTask: initialTask
                              ,inputTables: inputTables
+                             ,initAuth: initAuth
                              ,initialEffect: initialEffect
                              ,syncConfig: syncConfig
                              ,effectTables: effectTables
                              ,kickOff: kickOff
+                             ,login: login
+                             ,initialLogin: initialLogin
                              ,updateState: updateState
                              ,view: view
-                             ,viewTables: viewTables};
+                             ,viewLoginBar: viewLoginBar
+                             ,viewTables: viewTables
+                             ,viewTable: viewTable};
 };

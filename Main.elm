@@ -24,7 +24,7 @@ import Matrix exposing (Matrix, Location, loc, row, col)
 import Result
 import Dict exposing (Dict)
 import Html exposing (..)
-import Html.Attributes exposing (class, style)
+import Html.Attributes exposing (class, style, type', value, for, id, placeholder)
 import Html.Events exposing (..)
 import Html.Lazy exposing (lazy, lazy2, lazy3)
 import Signal exposing (Mailbox, Address, mailbox, message)
@@ -35,6 +35,7 @@ import String
 import ElmFire
 import ElmFire.Dict
 import ElmFire.Op
+import ElmFire.Auth as Auth
 
 import Json.Encode as En
 import Json.Decode as De exposing ((:=))
@@ -55,6 +56,8 @@ firebase_test = "https://elm-goban.firebaseio.com/"
 
 firebaseUrl : String
 firebaseUrl = firebase_test
+
+firebaseGoban = ElmFire.fromUrl firebaseUrl
 
 --------------------------------------------------------------------------------
 
@@ -84,12 +87,14 @@ main = app.html
 type alias Model =
   { tables : Tables
   , selectedTableId : Maybe String
+  , loginForm : LoginState
+  , userAuth : Maybe Auth.Authentication
   }
 
-type Point = BlackStone | WhiteStone | Liberty
-
-type alias Board = Matrix Point
-
+type alias LoginState =
+  { username : String
+  , password : String
+  }
 
 type alias Tables = Dict String Table
 
@@ -97,43 +102,57 @@ initialModel : Model
 initialModel =
   { tables = Dict.empty
   , selectedTableId = Nothing
+  , userAuth = Nothing
+  , loginForm = { username = "", password = "" }
   }
 
 type Action
   = FromGui GuiEvent
   | FromServer Tables
+  | LoggedIn (Maybe Auth.Authentication)
   | FromEffect -- no specific actions from effects here
 
 --------------------------------------------------------------------------------
 
 type GuiEvent = NoGuiEvent
+  | NewTable
   | SelectTable String
+  | UnselectTable
   | AttemptMove String Location
+  | InputUpdated Field String
+  | Login String String
+
+type Field = Username | Password
 
 type alias GuiAddress = Address GuiEvent
 
 --------------------------------------------------------------------------------
-
--- Mirror Firbase's content as the model's tables
 
 -- initialTask : Task Error (Task Error ())
 -- inputTables : Signal Tables
 (initialTask, inputTables) =
   ElmFire.Dict.mirror syncConfig
 
+initAuth = Auth.getAuth firebaseGoban |> initialLogin
+
 initialEffect : Effects Action
-initialEffect = initialTask |> kickOff
+initialEffect = Effects.batch
+  [ initialTask |> kickOff
+  , initAuth
+  ]
+
+
+
+
 
 --------------------------------------------------------------------------------
 
 syncConfig : ElmFire.Dict.Config Table
 syncConfig =
-  { location = ElmFire.fromUrl firebaseUrl
+  { location = firebaseGoban
   , orderOptions = ElmFire.noOrder
-  , encoder =
-      encodeTable
-  , decoder =
-      decodeTable
+  , encoder = encodeTable
+  , decoder = decodeTable
   }
 
 
@@ -141,10 +160,8 @@ syncConfig =
 
 effectTables : ElmFire.Op.Operation Table -> Effects Action
 effectTables operation =
-  ElmFire.Op.operate
-    syncConfig
-    operation
-  |> kickOff
+  ElmFire.Op.operate syncConfig operation
+    |> kickOff
 
 --------------------------------------------------------------------------------
 
@@ -153,13 +170,41 @@ kickOff : Task x a -> Effects Action
 kickOff =
   Task.toMaybe >> Task.map (always (FromEffect)) >> Effects.task
 
---------------------------------------------------------------------------------
+login : Task x Auth.Authentication -> Effects Action
+login task =
+  task
+    |> Task.toMaybe
+    |> Task.map LoggedIn
+    |> Effects.task
 
--- Process gui events and server events yielding model updates and effects
+initialLogin task =
+  task
+    |> Task.toMaybe
+    |> Task.map (\maybeResult ->
+      case log "maybe?" maybeResult of
+        Just result ->
+          LoggedIn result
+        Nothing ->
+          FromEffect
+    )
+    |> Effects.task
+
+----------------------------------- UPDATE ----------------------------------------
 
 updateState : Action -> Model -> (Model, Effects Action)
 updateState action model =
   case action of
+
+    LoggedIn (maybeAuth) ->
+      case maybeAuth of
+        Nothing ->
+          ( model
+          , Effects.none
+          )
+        Just auth ->
+          ( { model | userAuth = Just auth }
+          , Effects.none
+          )
 
     FromEffect ->
       ( model
@@ -176,68 +221,190 @@ updateState action model =
       , Effects.none
       )
 
+    FromGui NewTable ->
+      ( model
+      , effectTables <| ElmFire.Op.push Table.initialTable
+      )
+
+    FromGui UnselectTable ->
+      ( { model
+          | selectedTableId = Nothing
+        }
+      , Effects.none
+      )
+
+    FromGui (SelectTable id) ->
+      case model.userAuth of
+        Nothing ->
+          ( model
+          , Effects.none
+          )
+        Just _ ->
+          ( { model
+              | selectedTableId = Just id
+            }
+          , Effects.none
+          )
+
     FromGui (AttemptMove id location) ->
       ( model
-      , effectTables <| ElmFire.Op.update "testKifu2"
+      , effectTables <| ElmFire.Op.update id
         ( Maybe.map
             (\id -> Table.attemptMove id location)
         )
       )
 
-    FromGui (SelectTable id) ->
-      let
-        thing = log "selected id" id
-      in
-        ( { model
-            | selectedTableId = Just id
-          }
-        , Effects.none
-        )
+    FromGui (Login username password) ->
+      ( { model
+          | loginForm =
+              { username = model.loginForm.username
+              , password = ""
+              }
+        }
+      , Auth.authenticate
+          firebaseGoban
+          []
+          (Auth.withPassword (log "user" username) (log "pass" password))
+          |> login
+      )
 
---------------------------------------------------------------------------------
+    FromGui (InputUpdated field value) ->
+      let
+        loginForm = model.loginForm
+
+        updatedLoginFormState =
+          case field of
+            Username ->
+              { loginForm
+                | username = value
+              }
+            Password ->
+              { loginForm
+                | password = value
+              }
+      in
+      ( { model
+          | loginForm = updatedLoginFormState
+        }
+      , Effects.none
+      )
+
+------------------------------- VIEW -------------------------------------------
 
 view : Address Action -> Model -> Html
 view actionAddress model =
   let
     guiAddress = Signal.forwardTo actionAddress FromGui
 
+    isAuthed = case model.userAuth of
+      Just _ -> True
+      Nothing -> False
+
     -- poor man's routing!
     routeView =
       case model.selectedTableId of
         -- Show tables preview
         Nothing ->
-          viewTables model.tables guiAddress
+          viewTables model.tables guiAddress isAuthed
 
         -- Show the selected table
         Just id ->
-          let
-            maybeTable = Dict.get id model.tables
-          in
-            case maybeTable of
-              Just table ->
-                lazy3 TableView.viewBoard guiAddress (AttemptMove id) table
-              Nothing ->
-                text "loading~"
+          viewTable model.tables id guiAddress
+
   in
     div
-      [ style [ ("width", "1040px") ] ]
+      [ class "container" ]
       (
-        [ h2 [] [ text "Elm Goban" ] ]
+        [ h2 [] [ text "Elm Goban" ]
+        , viewLoginBar guiAddress model isAuthed
+        ]
         ++
         [ routeView ]
       )
 
 
-viewTables tables address =
+viewLoginBar address model isAuthed =
+  if not isAuthed then
+    div []
+      [ h4 [] [ text "Please log in to play" ]
+      , form [ class "form-inline" ]
+        [ div [ class "form-group" ] [
+          input
+            [ on "input" targetValue
+              (\str -> Signal.message address (InputUpdated Username str))
+            , id "username-field"
+            , type' "text"
+            , value model.loginForm.username
+            , placeholder "Username"
+            , class "form-control"
+            ] []
+          ]
+        , div [ class "form-group" ] [
+          input
+            [ on "input" targetValue
+              (\str -> Signal.message address (InputUpdated Password str))
+            , id "password-field"
+            , type' "password"
+            , value model.loginForm.password
+            , placeholder "Password"
+            , class "form-control"
+            ] []
+          ]
+        ]
+      , button
+          [ class "btn btn-primary"
+          , onClick
+            address
+            (Login model.loginForm.username model.loginForm.password)
+          ]
+          [ text "Login" ]
+        --, label [ for "username-field" ] [ text "username: " ]
+
+      ]
+  else
+    text ""
+
+
+
+viewTables tables address isAuthed =
   let
     tablesList =
       Dict.toList tables
   in
-    div [ ] (
-      List.map
-        (\(id, table) ->
-          (TableView.viewPreviewBoard address (SelectTable id)) table
-        )
-        tablesList
-    )
+    div []
+      [ if isAuthed then
+          button
+            [ class "btn btn-success"
+            , onClick address NewTable
+            ]
+            [ text "New Table" ]
+        else
+          text ""
+      , div [ ] (
+        List.map
+          (\(id, table) ->
+            (TableView.viewPreviewBoard address (SelectTable id)) table
+          )
+          tablesList
+      )
+      ]
+
+viewTable tables id address =
+  let
+    maybeTable = Dict.get id tables
+  in
+    case maybeTable of
+      Just table ->
+        div []
+          [ button
+            [ class "btn btn-warning"
+            , onClick address UnselectTable
+            ]
+            [ text "Return to Tables" ]
+          , TableView.viewBoard address (AttemptMove id) table
+          ]
+      Nothing ->
+        text "loading~"
+
+
 
