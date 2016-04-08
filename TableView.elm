@@ -8,31 +8,41 @@ import List exposing (..)
 
 import Matrix exposing (Matrix, Location, loc, row, col)
 
-import Table exposing (Table, Point, Player)
+import Table exposing (Table, Board, Point, Player)
 
 {------------- VIEW -------------}
 
 type alias Style = (String, String)
 
 
---view : Table -> Html
-view address action model =
-  div
-    [ style [ ("width", "1040px") ] ]
-    [ viewBoard address action model
-    , viewSidePane model
+viewBoard address action model =
+  div [ class "board", style boardStyle ]
+    -- curry the viewPoint function
+    (viewBoardContents model.board (viewPoint address action))
+
+
+viewPreviewBoard address select model =
+  div [ class "previewCard" ]
+    [ div
+      [ class "board preview"
+      , style previewBoardStyle
+      , onClick address select
+      ]
+      (viewBoardContents model.board viewPreviewPoint)
+    , div [ class "previewInfo" ]
+      [ h3 [] [ text "Game Info" ]
+      , p [] [ text ("Moves played: " ++ (toString model.currentMove)) ]
+      , p [] [ text (currentPlayerText model.currentPlayer) ]
+      ]
     ]
 
 
---viewBoard : Table -> Html
-viewBoard address action model =
-  div [ class "board", style boardStyle ]
-    (
-      model.board
-        |> Matrix.flatten
-        |> indexedMap (\i point ->
-          viewPoint address action point (getLocationFromIndex i)
-        )
+viewBoardContents : Board -> (Point -> Location -> Html) -> List Html
+viewBoardContents board pointView =
+  board
+    |> Matrix.flatten
+    |> indexedMap (\i point ->
+      pointView point (getLocationFromIndex i)
     )
 
 
@@ -44,13 +54,13 @@ viewSidePane model =
     [ viewCurrentPlayer model.currentPlayer ]
     ++
     [ viewCaptures model.blackCaptures model.whiteCaptures ]
-    ++
-    [ hr [] []
-    , p [ class "clear" ] [
-      a [
-        href "https://github.com/mclauia/elm-goban"
-      ] [ text "Project source" ] ]
-    ]
+    --++
+    --[ hr [] []
+    --, p [ class "clear" ] [
+    --  a [
+    --    href "https://github.com/mclauia/elm-goban"
+    --  ] [ text "Project source" ] ]
+    --]
   )
 
 
@@ -63,11 +73,16 @@ viewCurrentPlayer currentPlayer =
       [ style [
         ("float", if playerStr == "Black" then "left" else "right")
       ] ]
-      [ text (
-        playerStr ++ "'s move / "
-        ++ toJapanese playerStr ++ "の番"
-        )
+      [ text (currentPlayerText currentPlayer)
       ]
+
+
+currentPlayerText currentPlayer =
+  let
+    playerStr = toString currentPlayer
+  in
+    playerStr ++ "'s move / "
+    ++ toJapanese playerStr ++ "の番"
 
 
 toJapanese : String -> String
@@ -123,7 +138,6 @@ isStarPoint location =
     ]
 
 
---viewPoint : Point -> Location -> Html
 viewPoint address action point location =
   div [ class "point"
     , onClick address (action location)
@@ -148,13 +162,47 @@ viewPoint address action point location =
     ]
   )
 
+viewPreviewPoint point location =
+  div [ class "point" ]
+    (List.append
+      (drawPointLines location)
+      [ div [ class "stone" ] [
+        case toString point of
+          -- stone images credit https://github.com/zpmorgan/gostones-render
+          "BlackStone" ->
+            image 16 16 "imgs/b.png"
+              |> fromElement
+          "WhiteStone" ->
+            let
+              (y, x) = location
+              whiteStoneNum = ((y^2 * x^2) % 15) + 1
+            in
+              image 16 16 ("imgs/w" ++ (toString whiteStoneNum) ++ ".png")
+                |> fromElement
+          _ ->
+            text ""
+        ]
+      ]
+    )
+
 {------------- STYLES -------------}
 
-boardDimensions : String
-boardDimensions = toString (19 * 30)
+fullBoardDimensions : String
+fullBoardDimensions = toString (19 * 30)
 
 boardStyle : List Style
 boardStyle =
-  [ ("width", (boardDimensions ++ "px"))
-  , ("height", (boardDimensions ++ "px"))
+  [ ("width", (fullBoardDimensions ++ "px"))
+  , ("height", (fullBoardDimensions ++ "px"))
+  ]
+
+
+previewBoardDimensions : String
+previewBoardDimensions = toString (19 * 15)
+
+previewBoardStyle : List Style
+previewBoardStyle =
+  [ ("width", (previewBoardDimensions ++ "px"))
+  , ("height", (previewBoardDimensions ++ "px"))
+  , ("cursor", "pointer")
   ]

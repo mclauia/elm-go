@@ -12,12 +12,27 @@ button {
   margin-bottom: 5px;
 }
 
+.previewCard {
+  width: 315px;
+  display: inline-block;
+}
+
+.previewInfo {
+  padding: 10px;
+}
+
 .point {
   width: 30px;
   height: 30px;
   position: relative;
   float: left;
   cursor: pointer;
+}
+
+.preview .point {
+  width: 15px;
+  height: 15px;
+  cursor: default;
 }
 
 .stone {
@@ -34,6 +49,12 @@ button {
   left: 14px;
   top: 0;
 }
+
+  .preview .north, .preview .south {
+    height: 7px;
+    left: 7px;
+  }
+
 .south {
   position: absolute;
   height: 14px;
@@ -61,6 +82,11 @@ button {
   top: 14px;
 }
 
+  .preview .west, .preview .east {
+    width: 7px;
+    top: 7px;
+  }
+
 .starPoint {
   position: absolute;
   height: 8px;
@@ -70,6 +96,15 @@ button {
   left: 11px;
   top: 11px;
 }
+
+  .preview .starPoint {
+    height: 6px;
+    width: 6px;
+    border-radius: 3px;
+
+    left: 5px;
+    top: 5px;
+  }
 
 .sidePanel {
   float: right;

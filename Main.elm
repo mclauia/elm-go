@@ -24,7 +24,7 @@ import Matrix exposing (Matrix, Location, loc, row, col)
 import Result
 import Dict exposing (Dict)
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Html.Events exposing (..)
 import Html.Lazy exposing (lazy, lazy2, lazy3)
 import Signal exposing (Mailbox, Address, mailbox, message)
@@ -83,6 +83,7 @@ main = app.html
 
 type alias Model =
   { tables : Tables
+  , selectedTableId : Maybe String
   }
 
 type Point = BlackStone | WhiteStone | Liberty
@@ -95,6 +96,7 @@ type alias Tables = Dict String Table
 initialModel : Model
 initialModel =
   { tables = Dict.empty
+  , selectedTableId = Nothing
   }
 
 type Action
@@ -103,10 +105,10 @@ type Action
   | FromEffect -- no specific actions from effects here
 
 --------------------------------------------------------------------------------
--- Events originating from the user interacting with the html page
 
 type GuiEvent = NoGuiEvent
-  | AttemptMove Table Location
+  | SelectTable String
+  | AttemptMove String Location
 
 type alias GuiAddress = Address GuiEvent
 
@@ -133,19 +135,6 @@ syncConfig =
   , decoder =
       decodeTable
   }
-
---dictEncoder enc dict =
---   Dict.toList dict
---     |> List.map (\(k,v) -> (k, enc v))
---     |> object
-
---decodeTables : De.Decoder Tables
---decodeTables =
---    DeX.dict2 De.string decodeTable
-
---encodeTables : Tables -> En.Value
---encodeTables tables =
---    dictEncoder encodeTable tables
 
 
 --------------------------------------------------------------------------------
@@ -187,15 +176,23 @@ updateState action model =
       , Effects.none
       )
 
-    --FromGui (UpdateKifu id) ->
-
-    FromGui (AttemptMove table location) ->
+    FromGui (AttemptMove id location) ->
       ( model
-      , effectTables <| ElmFire.Op.update "testKifu"
+      , effectTables <| ElmFire.Op.update "testKifu2"
         ( Maybe.map
-            (\table -> Table.attemptMove table location)
+            (\id -> Table.attemptMove id location)
         )
       )
+
+    FromGui (SelectTable id) ->
+      let
+        thing = log "selected id" id
+      in
+        ( { model
+            | selectedTableId = Just id
+          }
+        , Effects.none
+        )
 
 --------------------------------------------------------------------------------
 
@@ -203,23 +200,40 @@ view : Address Action -> Model -> Html
 view actionAddress model =
   let
     guiAddress = Signal.forwardTo actionAddress FromGui
-    maybeTable = Dict.get "testKifu" model.tables
+
+    -- poor man's routing!
+    routeView =
+      case model.selectedTableId of
+        -- Show tables preview
+        Nothing ->
+          viewTables model.tables guiAddress
+
+        -- Show the selected table
+        Just id ->
+          let
+            maybeTable = Dict.get id model.tables
+          in
+            case maybeTable of
+              Just table ->
+                lazy3 TableView.viewBoard guiAddress (AttemptMove id) table
+              Nothing ->
+                text "loading~"
   in
-    div []
-      [ section [ class "table" ]
-        [
-        case maybeTable of
-          Just table ->
-            lazy3 TableView.view guiAddress (AttemptMove table) table
-          Nothing ->
-            text "loading~"
-        ]
-      ]
+    div
+      [ style [ ("width", "1040px") ] ]
+      [ routeView ]
+
 
 viewTables tables address =
-  div [ ] (
-    List.map (\table -> viewTable table address) tables
-  )
+  let
+    tablesList =
+      Dict.toList tables
+  in
+    div [ ] (
+      List.map
+        (\(id, table) ->
+          (TableView.viewPreviewBoard address (SelectTable id)) table
+        )
+        tablesList
+    )
 
-viewTable (id, table) address =
-  div [ ] [ text (toString table) ]

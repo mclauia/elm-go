@@ -36,6 +36,7 @@ type alias Table =
   --, previousBoards : List Board
   }
 
+
 initialTable =
   Table
     (Matrix.square 19 (\_ -> Liberty))
@@ -138,25 +139,12 @@ attemptMove model location =
           , blackCaptures = model.blackCaptures + blackCaptures
           , whiteCaptures = model.whiteCaptures + whiteCaptures
           --, previousBoards = model.board :: model.previousBoards
-          --, blackClock = resetOvertimeClock Black model.currentPlayer model.blackClock
-          --, whiteClock = resetOvertimeClock White model.currentPlayer model.whiteClock
         }
       else
         model
 
   in
     updatedTable
-
-
---resetOvertimeClock : Player -> Player -> Clock -> Clock
---resetOvertimeClock forPlayer currentPlayer clock =
---  if forPlayer == currentPlayer && clock.secondsRemaining == 0 then
---    { clock
---      | overtimeRemaining = initialOvertime
---    }
---  else
---    clock
-
 
 {-| Get the group of stones connected to the stone at a location
   (including the stone at the location itself)
