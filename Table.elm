@@ -33,6 +33,8 @@ type alias Table =
   , currentMove : Int
   , whiteCaptures : Int
   , blackCaptures : Int
+  , blackPlayer : String
+  , whitePlayer : String
   --, previousBoards : List Board
   }
 
@@ -44,6 +46,8 @@ initialTable =
     1
     0
     0
+    ""
+    ""
     --[]
 
 
@@ -265,6 +269,8 @@ decodeTable =
     |> required "currentMove" De.int
     |> required "whiteCaptures" De.int
     |> required "blackCaptures" De.int
+    |> optional "blackPlayer" De.string "anonymous / 無名"
+    |> optional "whitePlayer" De.string "anonymous / 無名"
 
 encodeTable : Table -> Json.Value
 encodeTable table =
@@ -274,6 +280,8 @@ encodeTable table =
     , ("currentMove",  Json.int table.currentMove)
     , ("whiteCaptures",  Json.int table.whiteCaptures)
     , ("blackCaptures",  Json.int table.blackCaptures)
+    , ("blackPlayer",  Json.string table.blackPlayer)
+    , ("whitePlayer",  Json.string table.whitePlayer)
     ]
 
 

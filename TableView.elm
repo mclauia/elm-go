@@ -1,7 +1,7 @@
 module TableView where
 
 import Graphics.Element exposing (image)
-import Html exposing (a, button, div, hr, h1, h2, h3, h4, p, text, Html, fromElement)
+import Html exposing (a, button, div, hr, h1, h2, h3, h4, p, text, small, Html, fromElement)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (class, href, style)
 import List exposing (..)
@@ -16,9 +16,12 @@ type alias Style = (String, String)
 
 
 viewBoard address action model =
-  div [ class "board", style boardStyle ]
-    -- curry the viewPoint function
-    (viewBoardContents model.board (viewPoint address action))
+  div []
+    [ div [ class "board", style boardStyle ]
+      -- curry the viewPoint function
+      (viewBoardContents model.board (viewPoint address action))
+    , viewSidePane model
+    ]
 
 
 viewPreviewBoard address select model =
@@ -30,7 +33,11 @@ viewPreviewBoard address select model =
       ]
       (viewBoardContents model.board viewPreviewPoint)
     , div [ class "previewInfo" ]
-      [ h3 [] [ text "Game Info" ]
+      [ p []
+        [ text model.blackPlayer
+        , small [] [ text " vs / 対 " ]
+        , text model.whitePlayer
+        ]
       , p [] [ text ("Moves played: " ++ (toString model.currentMove)) ]
       , p [] [ text (currentPlayerText model.currentPlayer) ]
       ]
@@ -49,8 +56,6 @@ viewBoardContents board pointView =
 viewSidePane : Table -> Html
 viewSidePane model =
   div [ class "sidePanel" ] (
-    [ h1 [] [ text "Elm Goban" ] ]
-    ++
     [ viewCurrentPlayer model.currentPlayer ]
     ++
     [ viewCaptures model.blackCaptures model.whiteCaptures ]
@@ -81,7 +86,7 @@ currentPlayerText currentPlayer =
   let
     playerStr = toString currentPlayer
   in
-    playerStr ++ "'s move / "
+    playerStr ++ " to play / "
     ++ toJapanese playerStr ++ "の番"
 
 
@@ -143,22 +148,13 @@ viewPoint address action point location =
     , onClick address (action location)
   ] (List.append
     (drawPointLines location)
-    [ div [ class "stone" ] [
-      case toString point of
-        -- stone images credit https://github.com/zpmorgan/gostones-render
+    [ case toString point of
         "BlackStone" ->
-          image 32 32 "imgs/b.png"
-            |> fromElement
+          div [ class "black stone" ] []
         "WhiteStone" ->
-          let
-            (y, x) = location
-            whiteStoneNum = ((y^2 * x^2) % 15) + 1
-          in
-            image 32 32 ("imgs/w" ++ (toString whiteStoneNum) ++ ".png")
-              |> fromElement
+          div [ class "white stone" ] []
         _ ->
           text ""
-      ]
     ]
   )
 
@@ -166,22 +162,13 @@ viewPreviewPoint point location =
   div [ class "point" ]
     (List.append
       (drawPointLines location)
-      [ div [ class "stone" ] [
-        case toString point of
-          -- stone images credit https://github.com/zpmorgan/gostones-render
-          "BlackStone" ->
-            image 16 16 "imgs/b.png"
-              |> fromElement
-          "WhiteStone" ->
-            let
-              (y, x) = location
-              whiteStoneNum = ((y^2 * x^2) % 15) + 1
-            in
-              image 16 16 ("imgs/w" ++ (toString whiteStoneNum) ++ ".png")
-                |> fromElement
-          _ ->
-            text ""
-        ]
+      [ case toString point of
+        "BlackStone" ->
+          div [ class "black stone" ] []
+        "WhiteStone" ->
+          div [ class "white stone" ] []
+        _ ->
+          text ""
       ]
     )
 

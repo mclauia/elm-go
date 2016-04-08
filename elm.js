@@ -12645,7 +12645,9 @@ Elm.Table.make = function (_elm) {
                                          ,{ctor: "_Tuple2",_0: "currentPlayer",_1: encodePlayer(table.currentPlayer)}
                                          ,{ctor: "_Tuple2",_0: "currentMove",_1: $Json$Encode.$int(table.currentMove)}
                                          ,{ctor: "_Tuple2",_0: "whiteCaptures",_1: $Json$Encode.$int(table.whiteCaptures)}
-                                         ,{ctor: "_Tuple2",_0: "blackCaptures",_1: $Json$Encode.$int(table.blackCaptures)}]));
+                                         ,{ctor: "_Tuple2",_0: "blackCaptures",_1: $Json$Encode.$int(table.blackCaptures)}
+                                         ,{ctor: "_Tuple2",_0: "blackPlayer",_1: $Json$Encode.string(table.blackPlayer)}
+                                         ,{ctor: "_Tuple2",_0: "whitePlayer",_1: $Json$Encode.string(table.whitePlayer)}]));
    };
    var getPointAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
@@ -12654,7 +12656,9 @@ Elm.Table.make = function (_elm) {
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) + 1}
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) - 1}]);
    };
-   var Table = F5(function (a,b,c,d,e) {    return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e};});
+   var Table = F7(function (a,b,c,d,e,f,g) {
+      return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e,blackPlayer: f,whitePlayer: g};
+   });
    var Liberty = {ctor: "Liberty"};
    var isLiberty = F2(function (location,board) {    return _U.eq(A2(getPointAt,location,board),$Maybe.Just(Liberty));});
    var doesGroupHaveLiberties = F2(function (group,board) {
@@ -12697,7 +12701,7 @@ Elm.Table.make = function (_elm) {
    var decodeBoard = $Json$Decode.array($Json$Decode.array(decodePoint));
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
-   var initialTable = A5(Table,A2($Matrix.square,19,function (_p4) {    return Liberty;}),Black,1,0,0);
+   var initialTable = A7(Table,A2($Matrix.square,19,function (_p4) {    return Liberty;}),Black,1,0,0,"","");
    var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
       var neighbors = getNeighborLocations(location);
@@ -12744,7 +12748,15 @@ Elm.Table.make = function (_elm) {
          default: return $Json$Decode.fail(A2($Basics._op["++"],"Not valid pattern for decoder to Player. Pattern: ",$Basics.toString(string)));}
    };
    var decodePlayer = A2($Json$Decode.andThen,$Json$Decode.string,playerFromString);
-   var decodeTable = A3($Json$Decode$Pipeline.required,
+   var decodeTable = A4($Json$Decode$Pipeline.optional,
+   "whitePlayer",
+   $Json$Decode.string,
+   "anonymous / 無名",
+   A4($Json$Decode$Pipeline.optional,
+   "blackPlayer",
+   $Json$Decode.string,
+   "anonymous / 無名",
+   A3($Json$Decode$Pipeline.required,
    "blackCaptures",
    $Json$Decode.$int,
    A3($Json$Decode$Pipeline.required,
@@ -12756,7 +12768,7 @@ Elm.Table.make = function (_elm) {
    A3($Json$Decode$Pipeline.required,
    "currentPlayer",
    decodePlayer,
-   A3($Json$Decode$Pipeline.required,"board",decodeBoard,$Json$Decode$Pipeline.decode(Table))))));
+   A3($Json$Decode$Pipeline.required,"board",decodeBoard,$Json$Decode$Pipeline.decode(Table))))))));
    return _elm.Table.values = {_op: _op
                               ,Black: Black
                               ,White: White
@@ -12792,7 +12804,6 @@ Elm.TableView.make = function (_elm) {
    var _U = Elm.Native.Utils.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
-   $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $Html$Events = Elm.Html.Events.make(_elm),
@@ -12839,44 +12850,26 @@ Elm.TableView.make = function (_elm) {
       _U.list([$Html$Attributes.$class("point"),A2($Html$Events.onClick,address,action(location))]),
       A2($List.append,
       drawPointLines(location),
-      _U.list([A2($Html.div,
-      _U.list([$Html$Attributes.$class("stone")]),
       _U.list([function () {
          var _p0 = $Basics.toString(point);
          switch (_p0)
-         {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,32,32,"imgs/b.png"));
-            case "WhiteStone": var _p1 = location;
-              var y = _p1._0;
-              var x = _p1._1;
-              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
-              return $Html.fromElement(A3($Graphics$Element.image,
-              32,
-              32,
-              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))));
+         {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
+            case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
-      }()]))])));
+      }()])));
    });
    var viewPreviewPoint = F2(function (point,location) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("point")]),
       A2($List.append,
       drawPointLines(location),
-      _U.list([A2($Html.div,
-      _U.list([$Html$Attributes.$class("stone")]),
       _U.list([function () {
-         var _p2 = $Basics.toString(point);
-         switch (_p2)
-         {case "BlackStone": return $Html.fromElement(A3($Graphics$Element.image,16,16,"imgs/b.png"));
-            case "WhiteStone": var _p3 = location;
-              var y = _p3._0;
-              var x = _p3._1;
-              var whiteStoneNum = A2($Basics._op["%"],Math.pow(y,2) * Math.pow(x,2),15) + 1;
-              return $Html.fromElement(A3($Graphics$Element.image,
-              16,
-              16,
-              A2($Basics._op["++"],"imgs/w",A2($Basics._op["++"],$Basics.toString(whiteStoneNum),".png"))));
+         var _p1 = $Basics.toString(point);
+         switch (_p1)
+         {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
+            case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
-      }()]))])));
+      }()])));
    });
    var getLocationFromIndex = function (index) {    return {ctor: "_Tuple2",_0: index / 19 | 0,_1: A2($Basics._op["%"],index,19)};};
    var viewCaptures = F2(function (blackCaptures,whiteCaptures) {
@@ -12889,10 +12882,10 @@ Elm.TableView.make = function (_elm) {
               _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
               _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
    });
-   var toJapanese = function (player) {    var _p4 = player;switch (_p4) {case "Black": return "黒";case "White": return "白";default: return "";}};
+   var toJapanese = function (player) {    var _p2 = player;switch (_p2) {case "Black": return "黒";case "White": return "白";default: return "";}};
    var currentPlayerText = function (currentPlayer) {
       var playerStr = $Basics.toString(currentPlayer);
-      return A2($Basics._op["++"],playerStr,A2($Basics._op["++"],"\'s move / ",A2($Basics._op["++"],toJapanese(playerStr),"の番")));
+      return A2($Basics._op["++"],playerStr,A2($Basics._op["++"]," to play / ",A2($Basics._op["++"],toJapanese(playerStr),"の番")));
    };
    var viewCurrentPlayer = function (currentPlayer) {
       var playerStr = $Basics.toString(currentPlayer);
@@ -12903,9 +12896,7 @@ Elm.TableView.make = function (_elm) {
    var viewSidePane = function (model) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("sidePanel")]),
-      A2($Basics._op["++"],
-      _U.list([A2($Html.h1,_U.list([]),_U.list([$Html.text("Elm Goban")]))]),
-      A2($Basics._op["++"],_U.list([viewCurrentPlayer(model.currentPlayer)]),_U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)]))));
+      A2($Basics._op["++"],_U.list([viewCurrentPlayer(model.currentPlayer)]),_U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)])));
    };
    var viewBoardContents = F2(function (board,pointView) {
       return A2($List.indexedMap,F2(function (i,point) {    return A2(pointView,point,getLocationFromIndex(i));}),$Matrix.flatten(board));
@@ -12918,14 +12909,19 @@ Elm.TableView.make = function (_elm) {
               A2(viewBoardContents,model.board,viewPreviewPoint))
               ,A2($Html.div,
               _U.list([$Html$Attributes.$class("previewInfo")]),
-              _U.list([A2($Html.h3,_U.list([]),_U.list([$Html.text("Game Info")]))
+              _U.list([A2($Html.p,
+                      _U.list([]),
+                      _U.list([$Html.text(model.blackPlayer),A2($Html.small,_U.list([]),_U.list([$Html.text(" vs / 対 ")])),$Html.text(model.whitePlayer)]))
                       ,A2($Html.p,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"Moves played: ",$Basics.toString(model.currentMove)))]))
                       ,A2($Html.p,_U.list([]),_U.list([$Html.text(currentPlayerText(model.currentPlayer))]))]))]));
    });
    var viewBoard = F3(function (address,action,model) {
       return A2($Html.div,
-      _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle)]),
-      A2(viewBoardContents,model.board,A2(viewPoint,address,action)));
+      _U.list([]),
+      _U.list([A2($Html.div,
+              _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle)]),
+              A2(viewBoardContents,model.board,A2(viewPoint,address,action)))
+              ,viewSidePane(model)]));
    });
    return _elm.TableView.values = {_op: _op
                                   ,viewBoard: viewBoard
@@ -13002,7 +12998,9 @@ Elm.Main.make = function (_elm) {
                   }
             }
       }();
-      return A2($Html.div,_U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "1040px"}]))]),_U.list([routeView]));
+      return A2($Html.div,
+      _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "width",_1: "1040px"}]))]),
+      A2($Basics._op["++"],_U.list([A2($Html.h2,_U.list([]),_U.list([$Html.text("Elm Goban")]))]),_U.list([routeView])));
    });
    var initialModel = {tables: $Dict.empty,selectedTableId: $Maybe.Nothing};
    var Liberty = {ctor: "Liberty"};

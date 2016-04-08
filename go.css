@@ -1,3 +1,100 @@
+/*! Typebase.less v0.1.0 | MIT License */
+/* Setup */
+html {
+  /* Change default typefaces here */
+  font-family: serif;
+  font-size: 137.5%;
+  -webkit-font-smoothing: antialiased;
+}
+/* Copy & Lists */
+p {
+  line-height: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+}
+ul,
+ol {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+ul li,
+ol li {
+  line-height: 1.5rem;
+}
+ul ul,
+ol ul,
+ul ol,
+ol ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+blockquote {
+  line-height: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  /* Change heading typefaces here */
+  font-family: sans-serif;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+  line-height: 1.5rem;
+}
+h1 {
+  font-size: 4.242rem;
+  line-height: 4.5rem;
+  margin-top: 2rem;
+}
+h2 {
+  font-size: 2.828rem;
+  line-height: 3rem;
+  margin-top: 2rem;
+}
+h3 {
+  font-size: 1.414rem;
+}
+h4 {
+  font-size: 0.707rem;
+}
+h5 {
+  font-size: 0.4713333333333333rem;
+}
+h6 {
+  font-size: 0.3535rem;
+}
+/* Tables */
+table {
+  margin-top: 1.5rem;
+  border-spacing: 0px;
+  border-collapse: collapse;
+}
+table td,
+table th {
+  padding: 0;
+  line-height: 33px;
+}
+/* Code blocks */
+code {
+  vertical-align: bottom;
+}
+/* Leading paragraph text */
+.lead {
+  font-size: 1.414rem;
+}
+/* Hug the block above you */
+.hug {
+  margin-top: 0;
+}
+
+
+
+
 p {
   margin: 0 0 10px;
 }
@@ -14,7 +111,7 @@ button {
 
 .previewCard {
   width: 315px;
-  display: inline-block;
+  float: left;
 }
 
 .previewInfo {
@@ -32,59 +129,66 @@ button {
 .preview .point {
   width: 15px;
   height: 15px;
-  cursor: default;
 }
 
 .stone {
   position: absolute;
-  margin-left: -1px;
-  margin-top: -1px;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  box-shadow: 2px 2px 3px 0px rgba(0,0,0,0.3);
 }
 
-.north {
+.preview .stone {
+  width: 15px;
+  height: 15px;
+  box-shadow: 1px 1px 2px 0px rgba(0,0,0,0.3);
+}
+
+.stone.white {
+  background: white;
+}
+
+.stone.black {
+  background: black;
+}
+
+
+.north, .south, .east, .west {
+  border: 1px solid black;
   position: absolute;
+
+}
+
+.north, .south {
   height: 14px;
   width: 0px;
-  border: 1px solid black;
   left: 14px;
-  top: 0;
 }
+.north { top: 0; }
+.south { bottom: 0; }
 
   .preview .north, .preview .south {
-    height: 7px;
+    height: 8px;
     left: 7px;
+    border: none;
+    border-left: 1px solid black;
   }
 
-.south {
-  position: absolute;
-  height: 14px;
-  width: 0px;
-  border: 1px solid black;
-  left: 14px;
-  bottom: 0;
-}
 
-.west {
-  position: absolute;
+.west, .east {
   height: 0px;
   width: 14px;
-  border: 1px solid black;
-  left: 0;
   top: 14px;
 }
-
-.east {
-  position: absolute;
-  height: 0px;
-  width: 14px;
-  border: 1px solid black;
-  right: 0;
-  top: 14px;
-}
+.west { left: 0; }
+.east { right: 0; }
 
   .preview .west, .preview .east {
     width: 7px;
     top: 7px;
+    border: none;
+    border-top: 1px solid black;
   }
 
 .starPoint {
@@ -98,12 +202,11 @@ button {
 }
 
   .preview .starPoint {
-    height: 6px;
-    width: 6px;
+    height: 3px;
+    width: 3px;
     border-radius: 3px;
-
-    left: 5px;
-    top: 5px;
+    left: 6px;
+    top: 6px;
   }
 
 .sidePanel {
@@ -122,6 +225,8 @@ button {
   -webkit-user-select: none;
   -ms-user-select: none;
   -moz-user-select: none;
+
+  box-shadow: 0px 0px 5px 3px #ccc
 }
 
 .clear {

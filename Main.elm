@@ -221,7 +221,11 @@ view actionAddress model =
   in
     div
       [ style [ ("width", "1040px") ] ]
-      [ routeView ]
+      (
+        [ h2 [] [ text "Elm Goban" ] ]
+        ++
+        [ routeView ]
+      )
 
 
 viewTables tables address =
