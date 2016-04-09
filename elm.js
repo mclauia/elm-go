@@ -13375,7 +13375,9 @@ Elm.Table.make = function (_elm) {
       return updatedTable;
    });
    var kifuToTable = function (kifu) {
-      return A3($List.foldr,F2(function (location,previousTable) {    return A2(attemptMove,previousTable,location);}),initialTable,kifu.moves);
+      var table = A3($List.foldr,F2(function (location,previousTable) {    return A2(attemptMove,previousTable,location);}),initialTable,kifu.moves);
+      var nextKifu = table.kifu;
+      return _U.update(table,{kifu: _U.update(nextKifu,{blackPlayer: kifu.blackPlayer,whitePlayer: kifu.whitePlayer})});
    };
    var undoMove = function (table) {
       var kifu = table.kifu;

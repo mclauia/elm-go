@@ -275,7 +275,19 @@ removeStonesFromBoard captures board =
 
 -- replay this kifu into a table
 kifuToTable kifu =
-  foldr (\location previousTable ->
-    attemptMove previousTable location
-  ) initialTable kifu.moves
+  let
+    table =
+      foldr (\location previousTable ->
+        attemptMove previousTable location
+      ) initialTable kifu.moves
+
+    nextKifu = table.kifu
+  in
+    { table
+      | kifu =
+        { nextKifu
+          | blackPlayer = kifu.blackPlayer
+          , whitePlayer = kifu.whitePlayer
+        }
+    }
 
