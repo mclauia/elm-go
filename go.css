@@ -20,6 +20,29 @@
   height: 15px;
 }
 
+.point .highlight {
+  border-radius: 7px;
+  border: 2px solid;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  margin-top: 8px;
+}
+.preview .point .highlight {
+  border-radius: 5px;
+  border: 1px solid;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  margin-top: 4px;
+}
+.point .highlight.black {
+  border-color: white;
+}
+.point .highlight.white {
+  border-color: black;
+}
+
 .stone {
   position: absolute;
   width: 30px;

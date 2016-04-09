@@ -23,7 +23,11 @@ type alias Style = (String, String)
 viewBoard address moveAction undoAction table =
   div []
     [ div [ class "board", style boardStyle ]
-      (viewBoardContents table.board (viewPoint address moveAction))
+      (
+        (viewBoardContents table.board (viewPoint address moveAction))
+        ++
+        [ viewHighlight table.kifu.moves False ]
+      )
     , viewSidePane address undoAction table
     ]
 
@@ -32,7 +36,6 @@ viewBoardContents board pointView =
   board
     |> Matrix.flatten
     |> indexedMap (\i point ->
-      -- @todo the last thing in the kifu list is the one to highlight
       pointView point (getLocationFromIndex i)
     )
 
@@ -47,6 +50,8 @@ viewPreviewKifu address select table =
       (
         --drawBoard ++
         (viewPreviewBoard table.board)
+        ++
+        [ viewHighlight table.kifu.moves True ]
       )
 
     , div [ class "previewInfo" ]
@@ -67,7 +72,6 @@ drawBoard =
   (Matrix.square 19 (\_ -> ""))
     |> Matrix.flatten
     |> indexedMap (\i point ->
-      -- @todo the last thing in the kifu list is the one to highlight
       viewPreviewPoint point (getLocationFromIndex i)
     )
 
@@ -77,7 +81,6 @@ viewPreviewBoard board =
   board
     |> Matrix.flatten
     |> indexedMap (\i point ->
-      -- @todo the last thing in the kifu list is the one to highlight
       viewPreviewPoint point (getLocationFromIndex i)
     )
 
@@ -208,20 +211,32 @@ viewPreviewPoint point location =
       ]
     )
 
-viewPreviewStone location isWhite =
-  div [ class "point", previewStoneCoords location ]
-    [ if isWhite then
-        div [ class "black stone" ] []
-      else
-        div [ class "white stone" ] []
-    ]
+viewHighlight moves isPreview =
+  let
+    maybeLoc = head moves
 
-previewStoneCoords (y, x) =
-  style
-    [ ("position", "absolute")
-    , ("left", toString ((x * 15) + 5) ++ "px")
-    , ("top", toString ((y * 15) + 5) ++ "px")
-    ]
+    isWhite = isEven <| length moves
+  in
+    case maybeLoc of
+      Just location ->
+        div [ class "point", previewStoneCoords isPreview location ]
+          [ if isWhite then
+              div [ class "white highlight" ] []
+            else
+              div [ class "black highlight" ] []
+          ]
+      Nothing ->
+        text ""
+
+previewStoneCoords isPreview (y, x) =
+  let
+    dim = if isPreview then 15 else 30
+  in
+    style
+      [ ("position", "absolute")
+      , ("left", toString ((x * dim) + 5) ++ "px")
+      , ("top", toString ((y * dim) + 5) ++ "px")
+      ]
 
 {------------- STYLES -------------}
 

@@ -418,7 +418,6 @@ viewTable kifus id address =
              onClick address UnselectTable
             ]
             [ text "Return to Tables" ]
-            -- @todo kifuToTable kifu
           , TableView.viewBoard address (AttemptMove id) (UndoMove id) (kifuToTable kifu)
           ]
       Nothing ->

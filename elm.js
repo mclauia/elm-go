@@ -13412,6 +13412,7 @@ Elm.TableView.make = function (_elm) {
    _elm.TableView = _elm.TableView || {};
    if (_elm.TableView.values) return _elm.TableView.values;
    var _U = Elm.Native.Utils.make(_elm),
+   $Arithmetic = Elm.Arithmetic.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
    $Html = Elm.Html.make(_elm),
@@ -13428,18 +13429,26 @@ Elm.TableView.make = function (_elm) {
                                    ,{ctor: "_Tuple2",_0: "height",_1: "295px"}
                                    ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
    var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "580px"},{ctor: "_Tuple2",_0: "height",_1: "580px"}]);
-   var previewStoneCoords = function (_p0) {
+   var previewStoneCoords = F2(function (isPreview,_p0) {
       var _p1 = _p0;
+      var dim = isPreview ? 15 : 30;
       return $Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
-                                            ,{ctor: "_Tuple2",_0: "left",_1: A2($Basics._op["++"],$Basics.toString(_p1._1 * 15 + 5),"px")}
-                                            ,{ctor: "_Tuple2",_0: "top",_1: A2($Basics._op["++"],$Basics.toString(_p1._0 * 15 + 5),"px")}]));
-   };
-   var viewPreviewStone = F2(function (location,isWhite) {
-      return A2($Html.div,
-      _U.list([$Html$Attributes.$class("point"),previewStoneCoords(location)]),
-      _U.list([isWhite ? A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([])) : A2($Html.div,
-      _U.list([$Html$Attributes.$class("white stone")]),
-      _U.list([]))]));
+                                            ,{ctor: "_Tuple2",_0: "left",_1: A2($Basics._op["++"],$Basics.toString(_p1._1 * dim + 5),"px")}
+                                            ,{ctor: "_Tuple2",_0: "top",_1: A2($Basics._op["++"],$Basics.toString(_p1._0 * dim + 5),"px")}]));
+   });
+   var viewHighlight = F2(function (moves,isPreview) {
+      var isWhite = $Arithmetic.isEven($List.length(moves));
+      var maybeLoc = $List.head(moves);
+      var _p2 = maybeLoc;
+      if (_p2.ctor === "Just") {
+            return A2($Html.div,
+            _U.list([$Html$Attributes.$class("point"),A2(previewStoneCoords,isPreview,_p2._0)]),
+            _U.list([isWhite ? A2($Html.div,_U.list([$Html$Attributes.$class("white highlight")]),_U.list([])) : A2($Html.div,
+            _U.list([$Html$Attributes.$class("black highlight")]),
+            _U.list([]))]));
+         } else {
+            return $Html.text("");
+         }
    });
    var isStarPoint = function (location) {
       return A2($List.member,
@@ -13471,8 +13480,8 @@ Elm.TableView.make = function (_elm) {
       A2($List.append,
       drawPointLines(location),
       _U.list([function () {
-         var _p2 = $Basics.toString(point);
-         switch (_p2)
+         var _p3 = $Basics.toString(point);
+         switch (_p3)
          {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
             case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
@@ -13484,8 +13493,8 @@ Elm.TableView.make = function (_elm) {
       A2($List.append,
       drawPointLines(location),
       _U.list([function () {
-         var _p3 = $Basics.toString(point);
-         switch (_p3)
+         var _p4 = $Basics.toString(point);
+         switch (_p4)
          {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
             case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
@@ -13502,7 +13511,7 @@ Elm.TableView.make = function (_elm) {
               _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
               _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
    });
-   var toJapanese = function (player) {    var _p4 = player;switch (_p4) {case "Black": return "黒";case "White": return "白";default: return "";}};
+   var toJapanese = function (player) {    var _p5 = player;switch (_p5) {case "Black": return "黒";case "White": return "白";default: return "";}};
    var currentPlayerText = function (currentPlayer) {
       var playerStr = $Basics.toString(currentPlayer);
       return A2($Basics._op["++"],playerStr,A2($Basics._op["++"]," to play / ",A2($Basics._op["++"],toJapanese(playerStr),"の番")));
@@ -13529,13 +13538,13 @@ Elm.TableView.make = function (_elm) {
    };
    var drawBoard = A2($List.indexedMap,
    F2(function (i,point) {    return A2(viewPreviewPoint,point,getLocationFromIndex(i));}),
-   $Matrix.flatten(A2($Matrix.square,19,function (_p5) {    return "";})));
+   $Matrix.flatten(A2($Matrix.square,19,function (_p6) {    return "";})));
    var viewPreviewKifu = F3(function (address,select,table) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("previewCard")]),
       _U.list([A2($Html.div,
               _U.list([$Html$Attributes.$class("board preview"),$Html$Attributes.style(previewBoardStyle),A2($Html$Events.onClick,address,select)]),
-              viewPreviewBoard(table.board))
+              A2($Basics._op["++"],viewPreviewBoard(table.board),_U.list([A2(viewHighlight,table.kifu.moves,true)])))
               ,A2($Html.div,
               _U.list([$Html$Attributes.$class("previewInfo")]),
               _U.list([A2($Html.p,
@@ -13555,7 +13564,7 @@ Elm.TableView.make = function (_elm) {
       _U.list([]),
       _U.list([A2($Html.div,
               _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle)]),
-              A2(viewBoardContents,table.board,A2(viewPoint,address,moveAction)))
+              A2($Basics._op["++"],A2(viewBoardContents,table.board,A2(viewPoint,address,moveAction)),_U.list([A2(viewHighlight,table.kifu.moves,false)])))
               ,A3(viewSidePane,address,undoAction,table)]));
    });
    return _elm.TableView.values = {_op: _op
@@ -13574,7 +13583,7 @@ Elm.TableView.make = function (_elm) {
                                   ,isStarPoint: isStarPoint
                                   ,viewPoint: viewPoint
                                   ,viewPreviewPoint: viewPreviewPoint
-                                  ,viewPreviewStone: viewPreviewStone
+                                  ,viewHighlight: viewHighlight
                                   ,previewStoneCoords: previewStoneCoords
                                   ,boardStyle: boardStyle
                                   ,previewBoardStyle: previewBoardStyle};
