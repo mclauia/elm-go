@@ -17,7 +17,8 @@ when the game is over...????
 
 --}
 
-import Table exposing (Table, Player, attemptMove, encodeTable, decodeTable)
+import Table exposing (Table, Player, attemptMove, initialTable, kifuToTable)
+import Kifu exposing (Kifu, encodeKifu, decodeKifu)
 import TableView
 import Matrix exposing (Matrix, Location, loc, row, col)
 
@@ -52,10 +53,11 @@ firebase_foreign : String
 firebase_foreign = "https://elm-goban.firebaseio.com/"
 
 firebase_test : String
-firebase_test = "https://elm-goban.firebaseio.com/"
+firebase_test = "https://mc.firebaseio.com/"
 
 firebaseUrl : String
-firebaseUrl = firebase_test
+--firebaseUrl = firebase_test
+firebaseUrl = firebase_foreign
 
 firebaseGoban = ElmFire.fromUrl firebaseUrl
 
@@ -66,7 +68,7 @@ config =
   { init = (initialModel, initialEffect)
   , update = updateState
   , view = view
-  , inputs = [Signal.map FromServer inputTables]
+  , inputs = [Signal.map FromServer inputKifus]
   }
 
 app : StartApp.App Model
@@ -85,8 +87,8 @@ main = app.html
 --   - Local State: Filtering and editing
 
 type alias Model =
-  { tables : Tables
-  , selectedTableId : Maybe String
+  { kifus : Kifus
+  , selectedKifuId : Maybe String
   , loginForm : LoginState
   , userAuth : Maybe Auth.Authentication
   }
@@ -96,19 +98,19 @@ type alias LoginState =
   , password : String
   }
 
-type alias Tables = Dict String Table
+type alias Kifus = Dict String Kifu
 
 initialModel : Model
 initialModel =
-  { tables = Dict.empty
-  , selectedTableId = Nothing
+  { kifus = Dict.empty
+  , selectedKifuId = Nothing
   , userAuth = Nothing
   , loginForm = { username = "", password = "" }
   }
 
 type Action
   = FromGui GuiEvent
-  | FromServer Tables
+  | FromServer Kifus
   | LoggedIn (Maybe Auth.Authentication)
   | FromEffect -- no specific actions from effects here
 
@@ -119,6 +121,7 @@ type GuiEvent = NoGuiEvent
   | SelectTable String
   | UnselectTable
   | AttemptMove String Location
+  | UndoMove String
   | InputUpdated Field String
   | Login String String
 
@@ -130,7 +133,7 @@ type alias GuiAddress = Address GuiEvent
 
 -- initialTask : Task Error (Task Error ())
 -- inputTables : Signal Tables
-(initialTask, inputTables) =
+(initialTask, inputKifus) =
   ElmFire.Dict.mirror syncConfig
 
 initAuth = Auth.getAuth firebaseGoban |> initialLogin
@@ -142,24 +145,21 @@ initialEffect = Effects.batch
   ]
 
 
-
-
-
 --------------------------------------------------------------------------------
 
-syncConfig : ElmFire.Dict.Config Table
+syncConfig : ElmFire.Dict.Config Kifu
 syncConfig =
   { location = firebaseGoban
   , orderOptions = ElmFire.noOrder
-  , encoder = encodeTable
-  , decoder = decodeTable
+  , encoder = encodeKifu
+  , decoder = decodeKifu
   }
 
 
 --------------------------------------------------------------------------------
 
-effectTables : ElmFire.Op.Operation Table -> Effects Action
-effectTables operation =
+effectKifus : ElmFire.Op.Operation Kifu -> Effects Action
+effectKifus operation =
   ElmFire.Op.operate syncConfig operation
     |> kickOff
 
@@ -180,10 +180,10 @@ login task =
 initialLogin task =
   task
     |> Task.toMaybe
-    |> Task.map (\maybeResult ->
-      case log "maybe?" maybeResult of
-        Just result ->
-          LoggedIn result
+    |> Task.map (\maybeMaybeAuth ->
+      case maybeMaybeAuth of
+        Just maybeAuth ->
+          LoggedIn maybeAuth
         Nothing ->
           FromEffect
     )
@@ -195,6 +195,7 @@ updateState : Action -> Model -> (Model, Effects Action)
 updateState action model =
   case action of
 
+    {-- server actions --}
     LoggedIn (maybeAuth) ->
       case maybeAuth of
         Nothing ->
@@ -211,8 +212,8 @@ updateState action model =
       , Effects.none
       )
 
-    FromServer tables ->
-      ( { model | tables = tables }
+    FromServer kifus ->
+      ( { model | kifus = kifus }
       , Effects.none
       )
 
@@ -221,16 +222,10 @@ updateState action model =
       , Effects.none
       )
 
+    {-- Tables actions --}
     FromGui NewTable ->
       ( model
-      , effectTables <| ElmFire.Op.push Table.initialTable
-      )
-
-    FromGui UnselectTable ->
-      ( { model
-          | selectedTableId = Nothing
-        }
-      , Effects.none
+      , effectKifus <| ElmFire.Op.push ( .kifu Table.initialTable )
       )
 
     FromGui (SelectTable id) ->
@@ -241,19 +236,43 @@ updateState action model =
           )
         Just _ ->
           ( { model
-              | selectedTableId = Just id
+              | selectedKifuId = Just id
             }
           , Effects.none
           )
 
+    {-- Table actions --}
+    FromGui UnselectTable ->
+      ( { model
+          | selectedKifuId = Nothing
+        }
+      , Effects.none
+      )
+
     FromGui (AttemptMove id location) ->
       ( model
-      , effectTables <| ElmFire.Op.update id
+      , effectKifus <| ElmFire.Op.update id
         ( Maybe.map
-            (\id -> Table.attemptMove id location)
+            (\kifu ->
+
+              Table.attemptMove (kifuToTable kifu) location
+                |> .kifu
+            )
         )
       )
 
+    FromGui (UndoMove id) ->
+      ( model
+      , effectKifus <| ElmFire.Op.update id
+        ( Maybe.map
+            (\kifu -> Table.undoMove (kifuToTable kifu)
+              |> .kifu
+            )
+        )
+      )
+
+
+    {-- Auth actions --}
     FromGui (Login username password) ->
       ( { model
           | loginForm =
@@ -275,19 +294,14 @@ updateState action model =
         updatedLoginFormState =
           case field of
             Username ->
-              { loginForm
-                | username = value
-              }
+              { loginForm | username = value }
             Password ->
-              { loginForm
-                | password = value
-              }
+              { loginForm | password = value }
       in
-      ( { model
-          | loginForm = updatedLoginFormState
-        }
+      ( { model | loginForm = updatedLoginFormState }
       , Effects.none
       )
+
 
 ------------------------------- VIEW -------------------------------------------
 
@@ -302,14 +316,14 @@ view actionAddress model =
 
     -- poor man's routing!
     routeView =
-      case model.selectedTableId of
+      case model.selectedKifuId of
         -- Show tables preview
         Nothing ->
-          viewTables model.tables guiAddress isAuthed
+          viewKifus model.kifus guiAddress isAuthed
 
         -- Show the selected table
         Just id ->
-          viewTable model.tables id guiAddress
+          viewTable model.kifus id guiAddress
 
   in
     div
@@ -366,42 +380,46 @@ viewLoginBar address model isAuthed =
 
 
 
-viewTables tables address isAuthed =
+viewKifus kifus address isAuthed =
   let
-    tablesList =
-      Dict.toList tables
+    kifusList =
+      Dict.toList kifus
   in
     div []
-      [ if isAuthed then
-          button
-            [ class "btn btn-success"
-            , onClick address NewTable
-            ]
-            [ text "New Table" ]
-        else
-          text ""
-      , div [ ] (
+      [
+      --if isAuthed then
+      --    button
+      --      [ class "btn btn-success"
+      --      , onClick address NewTable
+      --      ]
+      --      [ text "New Table" ]
+      --  else
+      --    text ""
+      --,
+        div [ ] (
         List.map
-          (\(id, table) ->
-            (TableView.viewPreviewBoard address (SelectTable id)) table
+          (\(id, kifu) ->
+            (TableView.viewPreviewKifu address (SelectTable id)) (kifuToTable kifu)
           )
-          tablesList
+          kifusList
       )
       ]
 
-viewTable tables id address =
+viewTable kifus id address =
   let
-    maybeTable = Dict.get id tables
+    maybeKifu = Dict.get id kifus
   in
-    case maybeTable of
-      Just table ->
+    case maybeKifu of
+      Just kifu ->
         div []
           [ button
             [ class "btn btn-warning"
-            , onClick address UnselectTable
+            ,
+             onClick address UnselectTable
             ]
             [ text "Return to Tables" ]
-          , TableView.viewBoard address (AttemptMove id) table
+            -- @todo kifuToTable kifu
+          , TableView.viewBoard address (AttemptMove id) (UndoMove id) (kifuToTable kifu)
           ]
       Nothing ->
         text "loading~"

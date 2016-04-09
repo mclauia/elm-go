@@ -9,12 +9,9 @@ import Matrix exposing (Matrix, Location, loc, row, col)
 import Set exposing (Set)
 import Time exposing (Time, every, second)
 
-import Json.Encode as Json
-import Json.Decode as De exposing ((:=))
-import Json.Decode.Pipeline exposing (..)
-
 
 -- App modules
+import Kifu exposing (Kifu, initialKifu)
 import Utils exposing (toMmSs)
 
 
@@ -33,22 +30,19 @@ type alias Table =
   , currentMove : Int
   , whiteCaptures : Int
   , blackCaptures : Int
-  , blackPlayer : String
-  , whitePlayer : String
-  --, previousBoards : List Board
+  , kifu : Kifu -- all of the above are functions of the kifu
   }
 
+initialBoard = (Matrix.square 19 (\_ -> Liberty))
 
 initialTable =
   Table
-    (Matrix.square 19 (\_ -> Liberty))
+    initialBoard
     Black
     1
     0
     0
-    "anonymous / 無名"
-    "anonymous / 無名"
-    --[]
+    initialKifu
 
 
 {------------- UPDATE -------------}
@@ -87,40 +81,41 @@ isLiberty location board =
     then the move is played and any captures are tallied up.
 -}
 attemptMove : Table -> Location -> Table
-attemptMove model location =
+attemptMove table location =
   let
-    stone = case model.currentPlayer of
+    stone = case table.currentPlayer of
       White -> WhiteStone
       Black -> BlackStone
 
     potentialBoard =
-      Matrix.set location stone model.board
+      Matrix.set location stone table.board
 
     potentialGroup =
       getGroupFromLocation location potentialBoard []
 
     potentialCaptures =
-      getCaptures location potentialBoard model.currentPlayer
+      getCaptures location potentialBoard table.currentPlayer
 
     potentialBoardAfterCapture =
       removeStonesFromBoard potentialCaptures potentialBoard
 
     blackCaptures =
-      if model.currentPlayer == White then
+      if table.currentPlayer == White then
         0
       else
         length potentialCaptures
     whiteCaptures =
-      if model.currentPlayer == Black then
+      if table.currentPlayer == Black then
         0
       else
         length potentialCaptures
 
     isLegalMove =
       -- is this even a free space
-      Matrix.get location model.board == Just Liberty
-      -- has this board position been seen before @todo
-      --&& (not <| member potentialBoardAfterCapture model.previousBoards)
+      Matrix.get location table.board == Just Liberty
+      -- has this board position been seen before
+      -- @todo calculate invalid positions by replaying kifu
+      --&& (not <| member potentialBoardAfterCapture table.previousBoards)
       -- would the potential stone's group have liberties OR result in a capture
       && (
         doesGroupHaveLiberties potentialGroup potentialBoard
@@ -128,7 +123,7 @@ attemptMove model location =
       )
 
     nextPlayer =
-      case model.currentPlayer of
+      case table.currentPlayer of
         White ->
           Black
         Black ->
@@ -136,19 +131,40 @@ attemptMove model location =
 
     updatedTable =
       if isLegalMove then
-        { model
+        { table
           | board = potentialBoardAfterCapture
           , currentPlayer = nextPlayer
-          , currentMove = model.currentMove + 1
-          , blackCaptures = model.blackCaptures + blackCaptures
-          , whiteCaptures = model.whiteCaptures + whiteCaptures
-          --, previousBoards = model.board :: model.previousBoards
+          , currentMove = table.currentMove + 1
+          , blackCaptures = table.blackCaptures + blackCaptures
+          , whiteCaptures = table.whiteCaptures + whiteCaptures
+          , kifu = Kifu.updateKifu table.kifu location
         }
       else
-        model
+        table
 
   in
     updatedTable
+
+
+-- minus the most recent move, recalculating captures
+undoMove : Table -> Table
+undoMove table =
+  let
+    kifu = table.kifu
+
+    maybeMoves = log "maybe moves" (tail kifu.moves)
+
+    moves =
+      case maybeMoves of
+        Just list -> list
+        Nothing -> []
+
+    undoneKifu =
+      { kifu
+        | moves = moves
+      }
+  in
+    kifuToTable undoneKifu
 
 {-| Get the group of stones connected to the stone at a location
   (including the stone at the location itself)
@@ -239,7 +255,7 @@ getCaptures location board player =
         not <| doesGroupHaveLiberties enemyGroup newBoard
       ) enemyGroups
   in
-    concatMap (\group -> group) enemyGroupsWithoutLiberties
+    concatMap identity enemyGroupsWithoutLiberties
       |> Set.fromList
       |> Set.toList
 
@@ -257,81 +273,9 @@ removeStonesFromBoard captures board =
   ) board captures
 
 
+-- replay this kifu into a table
+kifuToTable kifu =
+  foldr (\location previousTable ->
+    attemptMove previousTable location
+  ) initialTable kifu.moves
 
-
---{-- JSON --}
---{-- TABLE --}
-decodeTable : De.Decoder Table
-decodeTable =
-  decode Table
-    |> required "board" decodeBoard
-    |> required "currentPlayer" decodePlayer
-    |> required "currentMove" De.int
-    |> required "whiteCaptures" De.int
-    |> required "blackCaptures" De.int
-    |> optional "blackPlayer" De.string "" -- optional for backwards compat
-    |> optional "whitePlayer" De.string "" -- optional for backwards compat
-
-encodeTable : Table -> Json.Value
-encodeTable table =
-  Json.object
-    [ ("board",  encodeBoard table.board)
-    , ("currentPlayer",  encodePlayer table.currentPlayer)
-    , ("currentMove",  Json.int table.currentMove)
-    , ("whiteCaptures",  Json.int table.whiteCaptures)
-    , ("blackCaptures",  Json.int table.blackCaptures)
-    , ("blackPlayer",  Json.string table.blackPlayer)
-    , ("whitePlayer",  Json.string table.whitePlayer)
-    ]
-
-
-{-- BOARD --}
-decodeBoard : De.Decoder Board
-decodeBoard =
-  De.array (De.array decodePoint)
-
-encodeBoard : Board -> Json.Value
-encodeBoard board =
-  Json.array <| Array.map (\row ->
-    Json.array <| Array.map (\point ->
-      encodePoint point
-    ) row
-  ) board
-
-
-{-- POINT --}
-pointFromString : Int -> De.Decoder Point
-pointFromString int =
-  case int of
-    1 -> De.succeed BlackStone
-    0 -> De.succeed Liberty
-    2 -> De.succeed WhiteStone
-    _ -> De.fail ("Not valid pattern for decoder to Point. Pattern: " ++ (toString int))
-
-decodePoint : De.Decoder Point
-decodePoint =
-  De.int `De.andThen` pointFromString
-
-encodePoint : Point -> Json.Value
-encodePoint point =
-  case point of
-    Liberty -> Json.int 0
-    BlackStone -> Json.int 1
-    WhiteStone -> Json.int 2
-
-
---{-- PLAYER --}
-playerFromString : String -> De.Decoder Player
-playerFromString string =
-  case string of
-    "Black" -> De.succeed Black
-    "White" -> De.succeed White
-    _ -> De.fail ("Not valid pattern for decoder to Player. Pattern: " ++ (toString string))
-
-decodePlayer : De.Decoder Player
-decodePlayer =
-  De.string `De.andThen` playerFromString
-
-encodePlayer : Player -> Json.Value
-encodePlayer =
-  toString >> Json.string

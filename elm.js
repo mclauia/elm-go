@@ -12919,6 +12919,342 @@ Elm.StartApp.make = function (_elm) {
    var Config = F4(function (a,b,c,d) {    return {init: a,update: b,view: c,inputs: d};});
    return _elm.StartApp.values = {_op: _op,start: start,Config: Config,App: App};
 };
+Elm.Arithmetic = Elm.Arithmetic || {};
+Elm.Arithmetic.make = function (_elm) {
+   "use strict";
+   _elm.Arithmetic = _elm.Arithmetic || {};
+   if (_elm.Arithmetic.values) return _elm.Arithmetic.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Array = Elm.Array.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var primeFactors = function (n) {
+      var go = F3(function (p,n,factors) {
+         go: while (true) if (_U.cmp(p * p,n) > 0) return A2($Basics._op["++"],$List.reverse(factors),_U.list([n])); else if (_U.eq(A2($Basics._op["%"],n,p),0))
+            {
+                  var _v0 = p,_v1 = n / p | 0,_v2 = A2($List._op["::"],p,factors);
+                  p = _v0;
+                  n = _v1;
+                  factors = _v2;
+                  continue go;
+               } else {
+                  var _v3 = p + 1 + A2($Basics._op["%"],p,2),_v4 = n,_v5 = factors;
+                  p = _v3;
+                  n = _v4;
+                  factors = _v5;
+                  continue go;
+               }
+      });
+      return _U.cmp(n,1) < 1 ? _U.list([]) : A3(go,2,n,_U.list([]));
+   };
+   var primeExponents = function () {
+      var runLengthCons = F2(function (x,acc) {
+         var _p0 = acc;
+         if (_p0.ctor === "[]") {
+               return _U.list([{ctor: "_Tuple2",_0: x,_1: 1}]);
+            } else {
+               var _p3 = _p0._0._0;
+               var _p2 = _p0._1;
+               var _p1 = _p0._0._1;
+               return _U.eq(x,_p3) ? A2($List._op["::"],{ctor: "_Tuple2",_0: _p3,_1: _p1 + 1},_p2) : A2($List._op["::"],
+               {ctor: "_Tuple2",_0: x,_1: 1},
+               A2($List._op["::"],{ctor: "_Tuple2",_0: _p3,_1: _p1},_p2));
+            }
+      });
+      return function (_p4) {
+         return A3($List.foldr,runLengthCons,_U.list([]),primeFactors(_p4));
+      };
+   }();
+   var shiftToOdd = function (n) {
+      var f = F2(function (k,m) {
+         f: while (true) if (_U.eq(A2($Basics._op["%"],m,2),1)) return {ctor: "_Tuple2",_0: k,_1: m}; else {
+               var _v7 = k + 1,_v8 = m / 2 | 0;
+               k = _v7;
+               m = _v8;
+               continue f;
+            }
+      });
+      return A2(f,0,n);
+   };
+   var extendedGcd = F2(function (a,b) {
+      var egcd = F6(function (n1,o1,n2,o2,r,s) {
+         egcd: while (true) if (_U.eq(s,0)) return {ctor: "_Tuple3",_0: r,_1: o1,_2: o2}; else {
+               var q = r / s | 0;
+               var _v9 = o1 - q * n1,_v10 = n1,_v11 = o2 - q * n2,_v12 = n2,_v13 = s,_v14 = A2($Basics.rem,r,s);
+               n1 = _v9;
+               o1 = _v10;
+               n2 = _v11;
+               o2 = _v12;
+               r = _v13;
+               s = _v14;
+               continue egcd;
+            }
+      });
+      var _p5 = A6(egcd,0,1,1,0,$Basics.abs(a),$Basics.abs(b));
+      var d = _p5._0;
+      var x = _p5._1;
+      var y = _p5._2;
+      var u = _U.cmp(a,0) < 0 ? $Basics.negate(x) : x;
+      var v = _U.cmp(b,0) < 0 ? $Basics.negate(y) : y;
+      return {ctor: "_Tuple3",_0: d,_1: u,_2: v};
+   });
+   var modularInverse = F2(function (a,modulus) {
+      var _p6 = A2(extendedGcd,a,modulus);
+      var d = _p6._0;
+      var x = _p6._1;
+      return _U.eq(d,1) ? $Maybe.Just(A2($Basics._op["%"],x,modulus)) : $Maybe.Nothing;
+   });
+   var chineseRemainder = function (equations) {
+      var fromJustCons = F2(function (x,acc) {
+         var _p7 = x;
+         if (_p7.ctor === "Just") {
+               return A2($Maybe.map,F2(function (x,y) {    return A2($List._op["::"],x,y);})(_p7._0),acc);
+            } else {
+               return $Maybe.Nothing;
+            }
+      });
+      var fromJustList = A2($List.foldr,fromJustCons,$Maybe.Just(_U.list([])));
+      var _p8 = $List.unzip(equations);
+      var residues = _p8._0;
+      var moduli = _p8._1;
+      var m = $List.product(moduli);
+      var v = A2($List.map,function (x) {    return m / x | 0;},moduli);
+      var inverses = fromJustList(A3($List.map2,modularInverse,v,moduli));
+      return A2($Maybe.map,
+      function (_p9) {
+         return A3($Basics.flip,
+         F2(function (x,y) {    return A2($Basics._op["%"],x,y);}),
+         m,
+         $List.sum(A3($List.map2,F2(function (x,y) {    return x * y;}),v,A3($List.map2,F2(function (x,y) {    return x * y;}),residues,_p9))));
+      },
+      fromJustList(A3($List.map2,modularInverse,v,moduli)));
+   };
+   var totient = function (n) {
+      var f = F2(function (p,n) {    return n * (p - 1) / p | 0;});
+      var n$ = $Basics.abs(n);
+      return A3($List.foldr,f,n$,A2($List.map,$Basics.fst,primeExponents(n$)));
+   };
+   var gcd = F2(function (a,b) {
+      var gcd$ = F2(function (a,b) {
+         gcd$: while (true) if (_U.eq(b,0)) return a; else {
+               var _v16 = b,_v17 = A2($Basics._op["%"],a,b);
+               a = _v16;
+               b = _v17;
+               continue gcd$;
+            }
+      });
+      return A2(gcd$,$Basics.abs(a),$Basics.abs(b));
+   });
+   var lcm = F2(function (a,b) {    return $Basics.abs((a / A2(gcd,a,b) | 0) * b);});
+   var isCoprimeTo = F2(function (a,b) {    return _U.eq(A2(gcd,a,b),1);});
+   var divisorCount = function (_p10) {    return $List.product(A2($List.map,function (_p11) {    var _p12 = _p11;return _p12._1 + 1;},primeExponents(_p10)));};
+   var divisors = function () {
+      var f = function (_p13) {
+         var _p14 = _p13;
+         return $List.concatMap(function (a) {    return A2($List.map,function (x) {    return Math.pow(_p14._0,x) * a;},_U.range(0,_p14._1));});
+      };
+      return function (_p15) {
+         return $List.sort(A3($List.foldr,f,_U.list([1]),primeExponents(_p15)));
+      };
+   }();
+   var properDivisors = function (n) {    return A2($List.filter,F2(function (x,y) {    return !_U.eq(x,y);})(n),divisors(n));};
+   var isMultipleOf = F2(function (a,b) {    return _U.eq(A2($Basics._op["%"],a,b),0);});
+   var divides = F2(function (a,b) {    return _U.eq(A2($Basics._op["%"],b,a),0);});
+   var cubeRoot = function (n) {    return Math.pow(n,1 / 3);};
+   var intCubeRoot = function (_p16) {    return $Basics.round(cubeRoot($Basics.toFloat(_p16)));};
+   var exactIntCubeRoot = function (n) {    var s = intCubeRoot(n);return _U.eq(Math.pow(s,3),n) ? $Maybe.Just(s) : $Maybe.Nothing;};
+   var isCube = function (n) {
+      var r = A2($Basics._op["%"],n,63);
+      return (_U.eq(r,0) || (_U.eq(r,1) || (_U.eq(r,8) || (_U.eq(r,27) || (_U.eq(r,28) || (_U.eq(r,35) || (_U.eq(r,36) || (_U.eq(r,55) || _U.eq(r,
+      62))))))))) && _U.eq(Math.pow(intCubeRoot(n),3),n);
+   };
+   var intSquareRoot = function (_p17) {    return $Basics.round($Basics.sqrt($Basics.toFloat(_p17)));};
+   var exactIntSquareRoot = function (n) {    var s = intSquareRoot(n);return _U.eq(s * s,n) ? $Maybe.Just(s) : $Maybe.Nothing;};
+   var isSquare = function (n) {
+      var r = A2($Basics._op["%"],n,48);
+      return (_U.eq(r,0) || (_U.eq(r,1) || (_U.eq(r,4) || (_U.eq(r,9) || (_U.eq(r,16) || (_U.eq(r,25) || (_U.eq(r,33) || _U.eq(r,
+      36)))))))) && _U.eq(Math.pow(intSquareRoot(n),2),n);
+   };
+   var primesBelow = function (n) {
+      var trueIndices = function () {
+         var g = F2(function (x,acc) {    var _p18 = x;if (_p18.ctor === "Just") {    return A2($List._op["::"],_p18._0,acc);} else {    return acc;}});
+         var f = F2(function (i,pred) {    return pred ? $Maybe.Just(i) : $Maybe.Nothing;});
+         return function (_p19) {
+            return A3($Array.foldr,g,_U.list([]),A2($Array.indexedMap,f,_p19));
+         };
+      }();
+      var sieve = F2(function (p,arr) {
+         var mark = F4(function (i,p,n,arr) {
+            mark: while (true) if (_U.cmp(i * p,n) > -1) return arr; else {
+                  var _v21 = i + 1,_v22 = p,_v23 = n,_v24 = A3($Array.set,i * p,false,arr);
+                  i = _v21;
+                  p = _v22;
+                  n = _v23;
+                  arr = _v24;
+                  continue mark;
+               }
+         });
+         return _U.eq(A2($Array.get,p,arr),$Maybe.Just(true)) ? A4(mark,2,p,n,arr) : arr;
+      });
+      var initial = A3($Array.set,1,false,A3($Array.set,0,false,A2($Array.repeat,n,true)));
+      var ps = A2($List._op["::"],2,A2($List.map,function (x) {    return 2 * x + 1;},_U.range(1,intSquareRoot(n) / 2 | 0)));
+      return trueIndices(A3($List.foldr,sieve,initial,ps));
+   };
+   var safeSquareRoot = function (n) {    return _U.cmp(n,0) < 0 ? $Maybe.Nothing : $Maybe.Just($Basics.sqrt(n));};
+   var squareRoot = $Basics.sqrt;
+   var fromBase = function (base) {    return A2($List.foldl,F2(function (x,acc) {    return acc * base + x;}),0);};
+   var toBase = F2(function (base,n) {
+      var go = F2(function (x,acc) {
+         go: while (true) if (_U.cmp(x,0) < 1) return acc; else {
+               var _v25 = x / base | 0,_v26 = A2($List._op["::"],A2($Basics._op["%"],x,base),acc);
+               x = _v25;
+               acc = _v26;
+               continue go;
+            }
+      });
+      var n$ = $Basics.abs(n);
+      return A2(go,n$,_U.list([]));
+   });
+   var isOdd = function (n) {    return !_U.eq(A2($Basics._op["%"],n,2),0);};
+   var powerMod = F3(function (base,exponent,modulus) {
+      var go = F3(function (b,e,r) {
+         go: while (true) if (_U.eq(e,0)) return r; else {
+               var r$ = isOdd(e) ? A2($Basics._op["%"],r * b,modulus) : r;
+               var _v27 = A2($Basics._op["%"],b * b,modulus),_v28 = e / 2 | 0,_v29 = r$;
+               b = _v27;
+               e = _v28;
+               r = _v29;
+               continue go;
+            }
+      });
+      return _U.eq(modulus,1) ? 0 : A3(go,A2($Basics._op["%"],base,modulus),exponent,1);
+   });
+   var millerRabin = F2(function (n,witnesses) {
+      var check = F2(function (l,x) {
+         if (_U.cmp(l,0) < 1) return true; else {
+               var y = A3(powerMod,x,2,n);
+               return _U.eq(y,1) || !_U.eq(y,n - 1) && A2(check,l - 1,y);
+            }
+      });
+      var _p20 = shiftToOdd(n - 1);
+      var s = _p20._0;
+      var d = _p20._1;
+      var go = function (witnesses) {
+         go: while (true) {
+            var _p21 = witnesses;
+            if (_p21.ctor === "[]") {
+                  return true;
+               } else {
+                  var _p22 = _p21._1;
+                  var x = A3(powerMod,_p21._0,d,n);
+                  if (_U.eq(x,1) || _U.eq(x,n - 1)) {
+                        var _v31 = _p22;
+                        witnesses = _v31;
+                        continue go;
+                     } else if (A2(check,s - 1,x)) return false; else {
+                           var _v32 = _p22;
+                           witnesses = _v32;
+                           continue go;
+                        }
+               }
+         }
+      };
+      return go(witnesses);
+   });
+   var isPrime = function (n) {
+      return _U.cmp(n,13) < 0 ? _U.eq(n,2) || (_U.eq(n,3) || (_U.eq(n,5) || (_U.eq(n,7) || _U.eq(n,11)))) : _U.eq(A2($Basics._op["%"],n,2),
+      0) || (_U.eq(A2($Basics._op["%"],n,3),0) || _U.eq(A2($Basics._op["%"],n,5),0)) ? false : _U.cmp(n,1373653) < 0 ? A2(millerRabin,
+      n,
+      _U.list([2,3])) : A2(millerRabin,n,_U.list([2,3,5,7,11]));
+   };
+   var isEven = function (n) {    return _U.eq(A2($Basics._op["%"],n,2),0);};
+   return _elm.Arithmetic.values = {_op: _op
+                                   ,isEven: isEven
+                                   ,isOdd: isOdd
+                                   ,toBase: toBase
+                                   ,fromBase: fromBase
+                                   ,squareRoot: squareRoot
+                                   ,safeSquareRoot: safeSquareRoot
+                                   ,intSquareRoot: intSquareRoot
+                                   ,exactIntSquareRoot: exactIntSquareRoot
+                                   ,isSquare: isSquare
+                                   ,cubeRoot: cubeRoot
+                                   ,intCubeRoot: intCubeRoot
+                                   ,exactIntCubeRoot: exactIntCubeRoot
+                                   ,isCube: isCube
+                                   ,divides: divides
+                                   ,isMultipleOf: isMultipleOf
+                                   ,divisors: divisors
+                                   ,properDivisors: properDivisors
+                                   ,divisorCount: divisorCount
+                                   ,gcd: gcd
+                                   ,lcm: lcm
+                                   ,isCoprimeTo: isCoprimeTo
+                                   ,totient: totient
+                                   ,extendedGcd: extendedGcd
+                                   ,powerMod: powerMod
+                                   ,modularInverse: modularInverse
+                                   ,chineseRemainder: chineseRemainder
+                                   ,isPrime: isPrime
+                                   ,primesBelow: primesBelow
+                                   ,primeFactors: primeFactors
+                                   ,primeExponents: primeExponents};
+};
+Elm.Kifu = Elm.Kifu || {};
+Elm.Kifu.make = function (_elm) {
+   "use strict";
+   _elm.Kifu = _elm.Kifu || {};
+   if (_elm.Kifu.values) return _elm.Kifu.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Json$Decode = Elm.Json.Decode.make(_elm),
+   $Json$Decode$Pipeline = Elm.Json.Decode.Pipeline.make(_elm),
+   $Json$Encode = Elm.Json.Encode.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Matrix = Elm.Matrix.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var encodeTuple2 = function (tuple) {    return $Json$Encode.list(_U.list([$Json$Encode.$int($Basics.fst(tuple)),$Json$Encode.$int($Basics.snd(tuple))]));};
+   var encodeMoves = function (moves) {    return $Json$Encode.list(A2($List.map,encodeTuple2,moves));};
+   var decodeMoves = $Json$Decode.list(A3($Json$Decode.tuple2,
+   F2(function (v0,v1) {    return {ctor: "_Tuple2",_0: v0,_1: v1};}),
+   $Json$Decode.$int,
+   $Json$Decode.$int));
+   var encodeKifu = function (kifu) {
+      return $Json$Encode.object(_U.list([{ctor: "_Tuple2",_0: "moves",_1: encodeMoves(kifu.moves)}
+                                         ,{ctor: "_Tuple2",_0: "blackPlayer",_1: $Json$Encode.string(kifu.blackPlayer)}
+                                         ,{ctor: "_Tuple2",_0: "whitePlayer",_1: $Json$Encode.string(kifu.whitePlayer)}]));
+   };
+   var updateKifu = F2(function (kifu,location) {    return _U.update(kifu,{moves: A2($List._op["::"],location,kifu.moves)});});
+   var Kifu = F3(function (a,b,c) {    return {moves: a,blackPlayer: b,whitePlayer: c};});
+   var initialKifu = A3(Kifu,_U.list([]),"anonymous / 無名","anonymous / 無名");
+   var decodeKifu = A4($Json$Decode$Pipeline.optional,
+   "whitePlayer",
+   $Json$Decode.string,
+   "",
+   A4($Json$Decode$Pipeline.optional,
+   "blackPlayer",
+   $Json$Decode.string,
+   "",
+   A4($Json$Decode$Pipeline.optional,"moves",decodeMoves,_U.list([]),$Json$Decode$Pipeline.decode(Kifu))));
+   return _elm.Kifu.values = {_op: _op
+                             ,Kifu: Kifu
+                             ,initialKifu: initialKifu
+                             ,updateKifu: updateKifu
+                             ,decodeKifu: decodeKifu
+                             ,encodeKifu: encodeKifu
+                             ,decodeMoves: decodeMoves
+                             ,encodeMoves: encodeMoves
+                             ,encodeTuple2: encodeTuple2};
+};
 Elm.Utils = Elm.Utils || {};
 Elm.Utils.make = function (_elm) {
    "use strict";
@@ -12947,12 +13283,9 @@ Elm.Table.make = function (_elm) {
    _elm.Table = _elm.Table || {};
    if (_elm.Table.values) return _elm.Table.values;
    var _U = Elm.Native.Utils.make(_elm),
-   $Array = Elm.Array.make(_elm),
    $Basics = Elm.Basics.make(_elm),
    $Debug = Elm.Debug.make(_elm),
-   $Json$Decode = Elm.Json.Decode.make(_elm),
-   $Json$Decode$Pipeline = Elm.Json.Decode.Pipeline.make(_elm),
-   $Json$Encode = Elm.Json.Encode.make(_elm),
+   $Kifu = Elm.Kifu.make(_elm),
    $List = Elm.List.make(_elm),
    $Matrix = Elm.Matrix.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
@@ -12960,30 +13293,6 @@ Elm.Table.make = function (_elm) {
    $Set = Elm.Set.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
-   var encodePlayer = function (_p0) {    return $Json$Encode.string($Basics.toString(_p0));};
-   var encodePoint = function (point) {
-      var _p1 = point;
-      switch (_p1.ctor)
-      {case "Liberty": return $Json$Encode.$int(0);
-         case "BlackStone": return $Json$Encode.$int(1);
-         default: return $Json$Encode.$int(2);}
-   };
-   var encodeBoard = function (board) {
-      return $Json$Encode.array(A2($Array.map,
-      function (row) {
-         return $Json$Encode.array(A2($Array.map,function (point) {    return encodePoint(point);},row));
-      },
-      board));
-   };
-   var encodeTable = function (table) {
-      return $Json$Encode.object(_U.list([{ctor: "_Tuple2",_0: "board",_1: encodeBoard(table.board)}
-                                         ,{ctor: "_Tuple2",_0: "currentPlayer",_1: encodePlayer(table.currentPlayer)}
-                                         ,{ctor: "_Tuple2",_0: "currentMove",_1: $Json$Encode.$int(table.currentMove)}
-                                         ,{ctor: "_Tuple2",_0: "whiteCaptures",_1: $Json$Encode.$int(table.whiteCaptures)}
-                                         ,{ctor: "_Tuple2",_0: "blackCaptures",_1: $Json$Encode.$int(table.blackCaptures)}
-                                         ,{ctor: "_Tuple2",_0: "blackPlayer",_1: $Json$Encode.string(table.blackPlayer)}
-                                         ,{ctor: "_Tuple2",_0: "whitePlayer",_1: $Json$Encode.string(table.whitePlayer)}]));
-   };
    var getPointAt = F2(function (location,board) {    return A2($Matrix.get,location,board);});
    var getNeighborLocations = function (location) {
       return _U.list([{ctor: "_Tuple2",_0: $Matrix.row(location) - 1,_1: $Matrix.col(location)}
@@ -12991,10 +13300,9 @@ Elm.Table.make = function (_elm) {
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) + 1}
                      ,{ctor: "_Tuple2",_0: $Matrix.row(location),_1: $Matrix.col(location) - 1}]);
    };
-   var Table = F7(function (a,b,c,d,e,f,g) {
-      return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e,blackPlayer: f,whitePlayer: g};
-   });
+   var Table = F6(function (a,b,c,d,e,f) {    return {board: a,currentPlayer: b,currentMove: c,whiteCaptures: d,blackCaptures: e,kifu: f};});
    var Liberty = {ctor: "Liberty"};
+   var initialBoard = A2($Matrix.square,19,function (_p0) {    return Liberty;});
    var isLiberty = F2(function (location,board) {    return _U.eq(A2(getPointAt,location,board),$Maybe.Just(Liberty));});
    var doesGroupHaveLiberties = F2(function (group,board) {
       var groupNeighbors = A2($List.concatMap,function (stoneLocation) {    return getNeighborLocations(stoneLocation);},group);
@@ -13004,11 +13312,11 @@ Elm.Table.make = function (_elm) {
       var nextInspected = A2($List._op["::"],location,inspected);
       var allNeighbors = getNeighborLocations(location);
       var friendlyStone = function () {
-         var _p2 = A2(getPointAt,location,board);
-         if (_p2.ctor === "Nothing") {
+         var _p1 = A2(getPointAt,location,board);
+         if (_p1.ctor === "Nothing") {
                return Liberty;
             } else {
-               return _p2._0;
+               return _p1._0;
             }
       }();
       var isUnvisitedFriendlyNeighbor = function (neighborLocation) {
@@ -13024,23 +13332,13 @@ Elm.Table.make = function (_elm) {
    });
    var WhiteStone = {ctor: "WhiteStone"};
    var BlackStone = {ctor: "BlackStone"};
-   var pointFromString = function ($int) {
-      var _p3 = $int;
-      switch (_p3)
-      {case 1: return $Json$Decode.succeed(BlackStone);
-         case 0: return $Json$Decode.succeed(Liberty);
-         case 2: return $Json$Decode.succeed(WhiteStone);
-         default: return $Json$Decode.fail(A2($Basics._op["++"],"Not valid pattern for decoder to Point. Pattern: ",$Basics.toString($int)));}
-   };
-   var decodePoint = A2($Json$Decode.andThen,$Json$Decode.$int,pointFromString);
-   var decodeBoard = $Json$Decode.array($Json$Decode.array(decodePoint));
    var White = {ctor: "White"};
    var Black = {ctor: "Black"};
-   var initialTable = A7(Table,A2($Matrix.square,19,function (_p4) {    return Liberty;}),Black,1,0,0,"anonymous / 無名","anonymous / 無名");
+   var initialTable = A6(Table,initialBoard,Black,1,0,0,$Kifu.initialKifu);
    var getCaptures = F3(function (location,board,player) {
       var enemy = _U.eq(player,Black) ? WhiteStone : BlackStone;
       var neighbors = getNeighborLocations(location);
-      var stone = function () {    var _p5 = player;if (_p5.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var stone = function () {    var _p2 = player;if (_p2.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
       var newBoard = A3($Matrix.set,location,stone,board);
       var enemyNeighbors = A2($List.filter,
       function (neighborLocation) {
@@ -13053,57 +13351,39 @@ Elm.Table.make = function (_elm) {
          return $Basics.not(A2(doesGroupHaveLiberties,enemyGroup,newBoard));
       },
       enemyGroups);
-      return $Set.toList($Set.fromList(A2($List.concatMap,function (group) {    return group;},enemyGroupsWithoutLiberties)));
+      return $Set.toList($Set.fromList(A2($List.concatMap,$Basics.identity,enemyGroupsWithoutLiberties)));
    });
-   var attemptMove = F2(function (model,location) {
-      var nextPlayer = function () {    var _p6 = model.currentPlayer;if (_p6.ctor === "White") {    return Black;} else {    return White;}}();
-      var stone = function () {    var _p7 = model.currentPlayer;if (_p7.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
-      var potentialBoard = A3($Matrix.set,location,stone,model.board);
+   var attemptMove = F2(function (table,location) {
+      var nextPlayer = function () {    var _p3 = table.currentPlayer;if (_p3.ctor === "White") {    return Black;} else {    return White;}}();
+      var stone = function () {    var _p4 = table.currentPlayer;if (_p4.ctor === "White") {    return WhiteStone;} else {    return BlackStone;}}();
+      var potentialBoard = A3($Matrix.set,location,stone,table.board);
       var potentialGroup = A3(getGroupFromLocation,location,potentialBoard,_U.list([]));
-      var potentialCaptures = A3(getCaptures,location,potentialBoard,model.currentPlayer);
-      var blackCaptures = _U.eq(model.currentPlayer,White) ? 0 : $List.length(potentialCaptures);
-      var whiteCaptures = _U.eq(model.currentPlayer,Black) ? 0 : $List.length(potentialCaptures);
+      var potentialCaptures = A3(getCaptures,location,potentialBoard,table.currentPlayer);
+      var blackCaptures = _U.eq(table.currentPlayer,White) ? 0 : $List.length(potentialCaptures);
+      var whiteCaptures = _U.eq(table.currentPlayer,Black) ? 0 : $List.length(potentialCaptures);
       var potentialBoardAfterCapture = A2(removeStonesFromBoard,potentialCaptures,potentialBoard);
-      var isLegalMove = _U.eq(A2($Matrix.get,location,model.board),$Maybe.Just(Liberty)) && (A2(doesGroupHaveLiberties,
+      var isLegalMove = _U.eq(A2($Matrix.get,location,table.board),$Maybe.Just(Liberty)) && (A2(doesGroupHaveLiberties,
       potentialGroup,
       potentialBoard) || $Basics.not($List.isEmpty(potentialCaptures)));
-      var updatedTable = isLegalMove ? _U.update(model,
+      var updatedTable = isLegalMove ? _U.update(table,
       {board: potentialBoardAfterCapture
       ,currentPlayer: nextPlayer
-      ,currentMove: model.currentMove + 1
-      ,blackCaptures: model.blackCaptures + blackCaptures
-      ,whiteCaptures: model.whiteCaptures + whiteCaptures}) : model;
+      ,currentMove: table.currentMove + 1
+      ,blackCaptures: table.blackCaptures + blackCaptures
+      ,whiteCaptures: table.whiteCaptures + whiteCaptures
+      ,kifu: A2($Kifu.updateKifu,table.kifu,location)}) : table;
       return updatedTable;
    });
-   var playerFromString = function (string) {
-      var _p8 = string;
-      switch (_p8)
-      {case "Black": return $Json$Decode.succeed(Black);
-         case "White": return $Json$Decode.succeed(White);
-         default: return $Json$Decode.fail(A2($Basics._op["++"],"Not valid pattern for decoder to Player. Pattern: ",$Basics.toString(string)));}
+   var kifuToTable = function (kifu) {
+      return A3($List.foldr,F2(function (location,previousTable) {    return A2(attemptMove,previousTable,location);}),initialTable,kifu.moves);
    };
-   var decodePlayer = A2($Json$Decode.andThen,$Json$Decode.string,playerFromString);
-   var decodeTable = A4($Json$Decode$Pipeline.optional,
-   "whitePlayer",
-   $Json$Decode.string,
-   "",
-   A4($Json$Decode$Pipeline.optional,
-   "blackPlayer",
-   $Json$Decode.string,
-   "",
-   A3($Json$Decode$Pipeline.required,
-   "blackCaptures",
-   $Json$Decode.$int,
-   A3($Json$Decode$Pipeline.required,
-   "whiteCaptures",
-   $Json$Decode.$int,
-   A3($Json$Decode$Pipeline.required,
-   "currentMove",
-   $Json$Decode.$int,
-   A3($Json$Decode$Pipeline.required,
-   "currentPlayer",
-   decodePlayer,
-   A3($Json$Decode$Pipeline.required,"board",decodeBoard,$Json$Decode$Pipeline.decode(Table))))))));
+   var undoMove = function (table) {
+      var kifu = table.kifu;
+      var maybeMoves = A2($Debug.log,"maybe moves",$List.tail(kifu.moves));
+      var moves = function () {    var _p5 = maybeMoves;if (_p5.ctor === "Just") {    return _p5._0;} else {    return _U.list([]);}}();
+      var undoneKifu = _U.update(kifu,{moves: moves});
+      return kifuToTable(undoneKifu);
+   };
    return _elm.Table.values = {_op: _op
                               ,Black: Black
                               ,White: White
@@ -13111,25 +13391,18 @@ Elm.Table.make = function (_elm) {
                               ,WhiteStone: WhiteStone
                               ,Liberty: Liberty
                               ,Table: Table
+                              ,initialBoard: initialBoard
                               ,initialTable: initialTable
                               ,getNeighborLocations: getNeighborLocations
                               ,getPointAt: getPointAt
                               ,isLiberty: isLiberty
                               ,attemptMove: attemptMove
+                              ,undoMove: undoMove
                               ,getGroupFromLocation: getGroupFromLocation
                               ,doesGroupHaveLiberties: doesGroupHaveLiberties
                               ,getCaptures: getCaptures
                               ,removeStonesFromBoard: removeStonesFromBoard
-                              ,decodeTable: decodeTable
-                              ,encodeTable: encodeTable
-                              ,decodeBoard: decodeBoard
-                              ,encodeBoard: encodeBoard
-                              ,pointFromString: pointFromString
-                              ,decodePoint: decodePoint
-                              ,encodePoint: encodePoint
-                              ,playerFromString: playerFromString
-                              ,decodePlayer: decodePlayer
-                              ,encodePlayer: encodePlayer};
+                              ,kifuToTable: kifuToTable};
 };
 Elm.TableView = Elm.TableView || {};
 Elm.TableView.make = function (_elm) {
@@ -13153,6 +13426,19 @@ Elm.TableView.make = function (_elm) {
                                    ,{ctor: "_Tuple2",_0: "height",_1: "295px"}
                                    ,{ctor: "_Tuple2",_0: "cursor",_1: "pointer"}]);
    var boardStyle = _U.list([{ctor: "_Tuple2",_0: "width",_1: "580px"},{ctor: "_Tuple2",_0: "height",_1: "580px"}]);
+   var previewStoneCoords = function (_p0) {
+      var _p1 = _p0;
+      return $Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "position",_1: "absolute"}
+                                            ,{ctor: "_Tuple2",_0: "left",_1: A2($Basics._op["++"],$Basics.toString(_p1._1 * 15 + 5),"px")}
+                                            ,{ctor: "_Tuple2",_0: "top",_1: A2($Basics._op["++"],$Basics.toString(_p1._0 * 15 + 5),"px")}]));
+   };
+   var viewPreviewStone = F2(function (location,isWhite) {
+      return A2($Html.div,
+      _U.list([$Html$Attributes.$class("point"),previewStoneCoords(location)]),
+      _U.list([isWhite ? A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([])) : A2($Html.div,
+      _U.list([$Html$Attributes.$class("white stone")]),
+      _U.list([]))]));
+   });
    var isStarPoint = function (location) {
       return A2($List.member,
       location,
@@ -13183,8 +13469,8 @@ Elm.TableView.make = function (_elm) {
       A2($List.append,
       drawPointLines(location),
       _U.list([function () {
-         var _p0 = $Basics.toString(point);
-         switch (_p0)
+         var _p2 = $Basics.toString(point);
+         switch (_p2)
          {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
             case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
@@ -13196,8 +13482,8 @@ Elm.TableView.make = function (_elm) {
       A2($List.append,
       drawPointLines(location),
       _U.list([function () {
-         var _p1 = $Basics.toString(point);
-         switch (_p1)
+         var _p3 = $Basics.toString(point);
+         switch (_p3)
          {case "BlackStone": return A2($Html.div,_U.list([$Html$Attributes.$class("black stone")]),_U.list([]));
             case "WhiteStone": return A2($Html.div,_U.list([$Html$Attributes.$class("white stone")]),_U.list([]));
             default: return $Html.text("");}
@@ -13214,7 +13500,7 @@ Elm.TableView.make = function (_elm) {
               _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: "right"}]))]),
               _U.list([$Html.text(A2($Basics._op["++"],"white captures: ",$Basics.toString(whiteCaptures)))]))]));
    });
-   var toJapanese = function (player) {    var _p2 = player;switch (_p2) {case "Black": return "黒";case "White": return "白";default: return "";}};
+   var toJapanese = function (player) {    var _p4 = player;switch (_p4) {case "Black": return "黒";case "White": return "白";default: return "";}};
    var currentPlayerText = function (currentPlayer) {
       var playerStr = $Basics.toString(currentPlayer);
       return A2($Basics._op["++"],playerStr,A2($Basics._op["++"]," to play / ",A2($Basics._op["++"],toJapanese(playerStr),"の番")));
@@ -13225,40 +13511,57 @@ Elm.TableView.make = function (_elm) {
       _U.list([$Html$Attributes.style(_U.list([{ctor: "_Tuple2",_0: "float",_1: _U.eq(playerStr,"Black") ? "left" : "right"}]))]),
       _U.list([$Html.text(currentPlayerText(currentPlayer))]));
    };
-   var viewSidePane = function (model) {
+   var viewSidePane = F3(function (address,undoAction,model) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("sidePanel")]),
-      A2($Basics._op["++"],_U.list([viewCurrentPlayer(model.currentPlayer)]),_U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)])));
-   };
-   var viewBoardContents = F2(function (board,pointView) {
-      return A2($List.indexedMap,F2(function (i,point) {    return A2(pointView,point,getLocationFromIndex(i));}),$Matrix.flatten(board));
+      A2($Basics._op["++"],
+      _U.list([viewCurrentPlayer(model.currentPlayer)]),
+      _U.list([A2(viewCaptures,model.blackCaptures,model.whiteCaptures)
+              ,A2($Html.button,
+              _U.list([$Html$Attributes.$class("btn btn-primary"),A2($Html$Events.onClick,address,undoAction)]),
+              _U.list([$Html.text("Undo / 取り消します")]))
+              ,A2($Html.br,_U.list([]),_U.list([]))])));
    });
-   var viewPreviewBoard = F3(function (address,select,model) {
+   var viewPreviewBoard = function (board) {
+      return A2($List.indexedMap,F2(function (i,point) {    return A2(viewPreviewPoint,point,getLocationFromIndex(i));}),$Matrix.flatten(board));
+   };
+   var drawBoard = A2($List.indexedMap,
+   F2(function (i,point) {    return A2(viewPreviewPoint,point,getLocationFromIndex(i));}),
+   $Matrix.flatten(A2($Matrix.square,19,function (_p5) {    return "";})));
+   var viewPreviewKifu = F3(function (address,select,table) {
       return A2($Html.div,
       _U.list([$Html$Attributes.$class("previewCard")]),
       _U.list([A2($Html.div,
               _U.list([$Html$Attributes.$class("board preview"),$Html$Attributes.style(previewBoardStyle),A2($Html$Events.onClick,address,select)]),
-              A2(viewBoardContents,model.board,viewPreviewPoint))
+              viewPreviewBoard(table.board))
               ,A2($Html.div,
               _U.list([$Html$Attributes.$class("previewInfo")]),
               _U.list([A2($Html.p,
                       _U.list([]),
-                      _U.list([$Html.text(model.blackPlayer),A2($Html.small,_U.list([]),_U.list([$Html.text(" vs / 対 ")])),$Html.text(model.whitePlayer)]))
-                      ,A2($Html.p,_U.list([]),_U.list([$Html.text(A2($Basics._op["++"],"Moves played: ",$Basics.toString(model.currentMove)))]))
-                      ,A2($Html.p,_U.list([]),_U.list([$Html.text(currentPlayerText(model.currentPlayer))]))]))]));
+                      _U.list([$Html.text(table.kifu.blackPlayer)
+                              ,A2($Html.small,_U.list([]),_U.list([$Html.text(" vs / 対 ")]))
+                              ,$Html.text(table.kifu.whitePlayer)]))
+                      ,A2($Html.p,
+                      _U.list([]),
+                      _U.list([$Html.text(A2($Basics._op["++"],"Moves played: ",$Basics.toString($List.length(table.kifu.moves))))]))]))]));
    });
-   var viewBoard = F3(function (address,action,model) {
+   var viewBoardContents = F2(function (board,pointView) {
+      return A2($List.indexedMap,F2(function (i,point) {    return A2(pointView,point,getLocationFromIndex(i));}),$Matrix.flatten(board));
+   });
+   var viewBoard = F4(function (address,moveAction,undoAction,table) {
       return A2($Html.div,
       _U.list([]),
       _U.list([A2($Html.div,
               _U.list([$Html$Attributes.$class("board"),$Html$Attributes.style(boardStyle)]),
-              A2(viewBoardContents,model.board,A2(viewPoint,address,action)))
-              ,viewSidePane(model)]));
+              A2(viewBoardContents,table.board,A2(viewPoint,address,moveAction)))
+              ,A3(viewSidePane,address,undoAction,table)]));
    });
    return _elm.TableView.values = {_op: _op
                                   ,viewBoard: viewBoard
-                                  ,viewPreviewBoard: viewPreviewBoard
                                   ,viewBoardContents: viewBoardContents
+                                  ,viewPreviewKifu: viewPreviewKifu
+                                  ,drawBoard: drawBoard
+                                  ,viewPreviewBoard: viewPreviewBoard
                                   ,viewSidePane: viewSidePane
                                   ,viewCurrentPlayer: viewCurrentPlayer
                                   ,currentPlayerText: currentPlayerText
@@ -13269,6 +13572,8 @@ Elm.TableView.make = function (_elm) {
                                   ,isStarPoint: isStarPoint
                                   ,viewPoint: viewPoint
                                   ,viewPreviewPoint: viewPreviewPoint
+                                  ,viewPreviewStone: viewPreviewStone
+                                  ,previewStoneCoords: previewStoneCoords
                                   ,boardStyle: boardStyle
                                   ,previewBoardStyle: previewBoardStyle};
 };
@@ -13289,6 +13594,7 @@ Elm.Main.make = function (_elm) {
    $Html = Elm.Html.make(_elm),
    $Html$Attributes = Elm.Html.Attributes.make(_elm),
    $Html$Events = Elm.Html.Events.make(_elm),
+   $Kifu = Elm.Kifu.make(_elm),
    $List = Elm.List.make(_elm),
    $Matrix = Elm.Matrix.make(_elm),
    $Maybe = Elm.Maybe.make(_elm),
@@ -13344,35 +13650,38 @@ Elm.Main.make = function (_elm) {
                       ,A2($Html$Events.onClick,address,A2(Login,model.loginForm.username,model.loginForm.password))]),
               _U.list([$Html.text("Login")]))])) : $Html.text("");
    });
+   var UndoMove = function (a) {    return {ctor: "UndoMove",_0: a};};
    var AttemptMove = F2(function (a,b) {    return {ctor: "AttemptMove",_0: a,_1: b};});
    var UnselectTable = {ctor: "UnselectTable"};
-   var viewTable = F3(function (tables,id,address) {
-      var maybeTable = A2($Dict.get,id,tables);
-      var _p0 = maybeTable;
+   var viewTable = F3(function (kifus,id,address) {
+      var maybeKifu = A2($Dict.get,id,kifus);
+      var _p0 = maybeKifu;
       if (_p0.ctor === "Just") {
             return A2($Html.div,
             _U.list([]),
             _U.list([A2($Html.button,
                     _U.list([$Html$Attributes.$class("btn btn-warning"),A2($Html$Events.onClick,address,UnselectTable)]),
                     _U.list([$Html.text("Return to Tables")]))
-                    ,A3($TableView.viewBoard,address,AttemptMove(id),_p0._0)]));
+                    ,A4($TableView.viewBoard,address,AttemptMove(id),UndoMove(id),$Table.kifuToTable(_p0._0))]));
          } else {
             return $Html.text("loading~");
          }
    });
    var SelectTable = function (a) {    return {ctor: "SelectTable",_0: a};};
-   var NewTable = {ctor: "NewTable"};
-   var viewTables = F3(function (tables,address,isAuthed) {
-      var tablesList = $Dict.toList(tables);
+   var viewKifus = F3(function (kifus,address,isAuthed) {
+      var kifusList = $Dict.toList(kifus);
       return A2($Html.div,
       _U.list([]),
-      _U.list([isAuthed ? A2($Html.button,
-              _U.list([$Html$Attributes.$class("btn btn-success"),A2($Html$Events.onClick,address,NewTable)]),
-              _U.list([$Html.text("New Table")])) : $Html.text("")
-              ,A2($Html.div,
-              _U.list([]),
-              A2($List.map,function (_p1) {    var _p2 = _p1;return A3($TableView.viewPreviewBoard,address,SelectTable(_p2._0),_p2._1);},tablesList))]));
+      _U.list([A2($Html.div,
+      _U.list([]),
+      A2($List.map,
+      function (_p1) {
+         var _p2 = _p1;
+         return A3($TableView.viewPreviewKifu,address,SelectTable(_p2._0),$Table.kifuToTable(_p2._1));
+      },
+      kifusList))]));
    });
+   var NewTable = {ctor: "NewTable"};
    var NoGuiEvent = {ctor: "NoGuiEvent"};
    var FromEffect = {ctor: "FromEffect"};
    var kickOff = function (_p3) {    return $Effects.task(A2($Task.map,$Basics.always(FromEffect),$Task.toMaybe(_p3)));};
@@ -13380,8 +13689,8 @@ Elm.Main.make = function (_elm) {
    var login = function (task) {    return $Effects.task(A2($Task.map,LoggedIn,$Task.toMaybe(task)));};
    var initialLogin = function (task) {
       return $Effects.task(A2($Task.map,
-      function (maybeResult) {
-         var _p4 = A2($Debug.log,"maybe?",maybeResult);
+      function (maybeMaybeAuth) {
+         var _p4 = maybeMaybeAuth;
          if (_p4.ctor === "Just") {
                return LoggedIn(_p4._0);
             } else {
@@ -13396,11 +13705,11 @@ Elm.Main.make = function (_elm) {
       var isAuthed = function () {    var _p5 = model.userAuth;if (_p5.ctor === "Just") {    return true;} else {    return false;}}();
       var guiAddress = A2($Signal.forwardTo,actionAddress,FromGui);
       var routeView = function () {
-         var _p6 = model.selectedTableId;
+         var _p6 = model.selectedKifuId;
          if (_p6.ctor === "Nothing") {
-               return A3(viewTables,model.tables,guiAddress,isAuthed);
+               return A3(viewKifus,model.kifus,guiAddress,isAuthed);
             } else {
-               return A3(viewTable,model.tables,_p6._0,guiAddress);
+               return A3(viewTable,model.kifus,_p6._0,guiAddress);
             }
       }();
       return A2($Html.div,
@@ -13409,19 +13718,20 @@ Elm.Main.make = function (_elm) {
       _U.list([A2($Html.h2,_U.list([]),_U.list([$Html.text("Elm Goban")])),A3(viewLoginBar,guiAddress,model,isAuthed)]),
       _U.list([routeView])));
    });
-   var initialModel = {tables: $Dict.empty,selectedTableId: $Maybe.Nothing,userAuth: $Maybe.Nothing,loginForm: {username: "",password: ""}};
+   var initialModel = {kifus: $Dict.empty,selectedKifuId: $Maybe.Nothing,userAuth: $Maybe.Nothing,loginForm: {username: "",password: ""}};
    var LoginState = F2(function (a,b) {    return {username: a,password: b};});
-   var Model = F4(function (a,b,c,d) {    return {tables: a,selectedTableId: b,loginForm: c,userAuth: d};});
-   var firebase_test = "https://elm-goban.firebaseio.com/";
-   var firebaseUrl = firebase_test;
+   var Model = F4(function (a,b,c,d) {    return {kifus: a,selectedKifuId: b,loginForm: c,userAuth: d};});
+   var firebase_test = "https://mc.firebaseio.com/";
+   var firebase_foreign = "https://elm-goban.firebaseio.com/";
+   var firebaseUrl = firebase_foreign;
    var firebaseGoban = $ElmFire.fromUrl(firebaseUrl);
    var initAuth = initialLogin($ElmFire$Auth.getAuth(firebaseGoban));
-   var syncConfig = {location: firebaseGoban,orderOptions: $ElmFire.noOrder,encoder: $Table.encodeTable,decoder: $Table.decodeTable};
+   var syncConfig = {location: firebaseGoban,orderOptions: $ElmFire.noOrder,encoder: $Kifu.encodeKifu,decoder: $Kifu.decodeKifu};
    var _p7 = $ElmFire$Dict.mirror(syncConfig);
    var initialTask = _p7._0;
-   var inputTables = _p7._1;
+   var inputKifus = _p7._1;
    var initialEffect = $Effects.batch(_U.list([kickOff(initialTask),initAuth]));
-   var effectTables = function (operation) {    return kickOff(A2($ElmFire$Op.operate,syncConfig,operation));};
+   var effectKifus = function (operation) {    return kickOff(A2($ElmFire$Op.operate,syncConfig,operation));};
    var updateState = F2(function (action,model) {
       var _p8 = action;
       switch (_p8.ctor)
@@ -13432,22 +13742,31 @@ Elm.Main.make = function (_elm) {
                  return {ctor: "_Tuple2",_0: _U.update(model,{userAuth: $Maybe.Just(_p9._0)}),_1: $Effects.none};
               }
          case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
-         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{tables: _p8._0}),_1: $Effects.none};
+         case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{kifus: _p8._0}),_1: $Effects.none};
          default: switch (_p8._0.ctor)
            {case "NoGuiEvent": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
-              case "NewTable": return {ctor: "_Tuple2",_0: model,_1: effectTables($ElmFire$Op.push($Table.initialTable))};
-              case "UnselectTable": return {ctor: "_Tuple2",_0: _U.update(model,{selectedTableId: $Maybe.Nothing}),_1: $Effects.none};
+              case "NewTable": return {ctor: "_Tuple2",_0: model,_1: effectKifus($ElmFire$Op.push(function (_) {    return _.kifu;}($Table.initialTable)))};
               case "SelectTable": var _p10 = model.userAuth;
                 if (_p10.ctor === "Nothing") {
                       return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
                    } else {
-                      return {ctor: "_Tuple2",_0: _U.update(model,{selectedTableId: $Maybe.Just(_p8._0._0)}),_1: $Effects.none};
+                      return {ctor: "_Tuple2",_0: _U.update(model,{selectedKifuId: $Maybe.Just(_p8._0._0)}),_1: $Effects.none};
                    }
+              case "UnselectTable": return {ctor: "_Tuple2",_0: _U.update(model,{selectedKifuId: $Maybe.Nothing}),_1: $Effects.none};
               case "AttemptMove": return {ctor: "_Tuple2"
                                          ,_0: model
-                                         ,_1: effectTables(A2($ElmFire$Op.update,
+                                         ,_1: effectKifus(A2($ElmFire$Op.update,
                                          _p8._0._0,
-                                         $Maybe.map(function (id) {    return A2($Table.attemptMove,id,_p8._0._1);})))};
+                                         $Maybe.map(function (kifu) {
+                                            return function (_) {
+                                               return _.kifu;
+                                            }(A2($Table.attemptMove,$Table.kifuToTable(kifu),_p8._0._1));
+                                         })))};
+              case "UndoMove": return {ctor: "_Tuple2"
+                                      ,_0: model
+                                      ,_1: effectKifus(A2($ElmFire$Op.update,
+                                      _p8._0._0,
+                                      $Maybe.map(function (kifu) {    return function (_) {    return _.kifu;}($Table.undoMove($Table.kifuToTable(kifu)));})))};
               case "Login": return {ctor: "_Tuple2"
                                    ,_0: _U.update(model,{loginForm: {username: model.loginForm.username,password: ""}})
                                    ,_1: login(A3($ElmFire$Auth.authenticate,
@@ -13469,11 +13788,10 @@ Elm.Main.make = function (_elm) {
    var config = {init: {ctor: "_Tuple2",_0: initialModel,_1: initialEffect}
                 ,update: updateState
                 ,view: view
-                ,inputs: _U.list([A2($Signal.map,FromServer,inputTables)])};
+                ,inputs: _U.list([A2($Signal.map,FromServer,inputKifus)])};
    var app = $StartApp.start(config);
    var runEffects = Elm.Native.Task.make(_elm).performSignal("runEffects",app.tasks);
    var main = app.html;
-   var firebase_foreign = "https://elm-goban.firebaseio.com/";
    return _elm.Main.values = {_op: _op
                              ,firebase_foreign: firebase_foreign
                              ,firebase_test: firebase_test
@@ -13494,22 +13812,23 @@ Elm.Main.make = function (_elm) {
                              ,SelectTable: SelectTable
                              ,UnselectTable: UnselectTable
                              ,AttemptMove: AttemptMove
+                             ,UndoMove: UndoMove
                              ,InputUpdated: InputUpdated
                              ,Login: Login
                              ,Username: Username
                              ,Password: Password
                              ,initialTask: initialTask
-                             ,inputTables: inputTables
+                             ,inputKifus: inputKifus
                              ,initAuth: initAuth
                              ,initialEffect: initialEffect
                              ,syncConfig: syncConfig
-                             ,effectTables: effectTables
+                             ,effectKifus: effectKifus
                              ,kickOff: kickOff
                              ,login: login
                              ,initialLogin: initialLogin
                              ,updateState: updateState
                              ,view: view
                              ,viewLoginBar: viewLoginBar
-                             ,viewTables: viewTables
+                             ,viewKifus: viewKifus
                              ,viewTable: viewTable};
 };

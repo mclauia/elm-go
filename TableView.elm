@@ -10,55 +10,91 @@ import Matrix exposing (Matrix, Location, loc, row, col)
 
 import Table exposing (Table, Board, Point, Player)
 
+import Arithmetic exposing (isEven)
+
+import Debug exposing (log)
+
 {------------- VIEW -------------}
 
 type alias Style = (String, String)
 
 
-viewBoard address action model =
+
+viewBoard address moveAction undoAction table =
   div []
     [ div [ class "board", style boardStyle ]
-      -- curry the viewPoint function
-      (viewBoardContents model.board (viewPoint address action))
-    , viewSidePane model
+      (viewBoardContents table.board (viewPoint address moveAction))
+    , viewSidePane address undoAction table
     ]
-
-
-viewPreviewBoard address select model =
-  div [ class "previewCard" ]
-    [ div
-      [ class "board preview"
-      , style previewBoardStyle
-      , onClick address select
-      ]
-      (viewBoardContents model.board viewPreviewPoint)
-    , div [ class "previewInfo" ]
-      [ p []
-        [ text model.blackPlayer
-        , small [] [ text " vs / 対 " ]
-        , text model.whitePlayer
-        ]
-      , p [] [ text ("Moves played: " ++ (toString model.currentMove)) ]
-      , p [] [ text (currentPlayerText model.currentPlayer) ]
-      ]
-    ]
-
 
 viewBoardContents : Board -> (Point -> Location -> Html) -> List Html
 viewBoardContents board pointView =
   board
     |> Matrix.flatten
     |> indexedMap (\i point ->
+      -- @todo the last thing in the kifu list is the one to highlight
       pointView point (getLocationFromIndex i)
     )
 
 
-viewSidePane : Table -> Html
-viewSidePane model =
+viewPreviewKifu address select table =
+  div [ class "previewCard" ]
+    [ div
+      [ class "board preview"
+      , style previewBoardStyle
+      , onClick address select
+      ]
+      (
+        --drawBoard ++
+        (viewPreviewBoard table.board)
+      )
+
+    , div [ class "previewInfo" ]
+      [ p []
+        [ text table.kifu.blackPlayer
+        , small [] [ text " vs / 対 " ]
+        , text table.kifu.whitePlayer
+        ]
+      , p [] [ text ("Moves played: " ++ (toString <| List.length table.kifu.moves)) ]
+      -- @todo current player: if odd: white, if even: black
+      --, p [] [ text (currentPlayerText kifu.currentPlayer) ]
+      ]
+    ]
+
+
+-- @todo pls dont draw 361 cells, draw 38 lines
+drawBoard =
+  (Matrix.square 19 (\_ -> ""))
+    |> Matrix.flatten
+    |> indexedMap (\i point ->
+      -- @todo the last thing in the kifu list is the one to highlight
+      viewPreviewPoint point (getLocationFromIndex i)
+    )
+
+
+viewPreviewBoard board =
+  -- @todo draw current board onto grid from kifu
+  board
+    |> Matrix.flatten
+    |> indexedMap (\i point ->
+      -- @todo the last thing in the kifu list is the one to highlight
+      viewPreviewPoint point (getLocationFromIndex i)
+    )
+
+
+viewSidePane address undoAction model =
   div [ class "sidePanel" ] (
     [ viewCurrentPlayer model.currentPlayer ]
     ++
-    [ viewCaptures model.blackCaptures model.whiteCaptures ]
+    [ viewCaptures model.blackCaptures model.whiteCaptures
+    , button
+      [ class "btn btn-primary"
+      , onClick address undoAction
+      ]
+      [ text "Undo / 取り消します" ]
+    , Html.br [] []
+    --, text (toString model.kifu)
+ ]
     --++
     --[ hr [] []
     --, p [ class "clear" ] [
@@ -171,6 +207,21 @@ viewPreviewPoint point location =
           text ""
       ]
     )
+
+viewPreviewStone location isWhite =
+  div [ class "point", previewStoneCoords location ]
+    [ if isWhite then
+        div [ class "black stone" ] []
+      else
+        div [ class "white stone" ] []
+    ]
+
+previewStoneCoords (y, x) =
+  style
+    [ ("position", "absolute")
+    , ("left", toString ((x * 15) + 5) ++ "px")
+    , ("top", toString ((y * 15) + 5) ++ "px")
+    ]
 
 {------------- STYLES -------------}
 
