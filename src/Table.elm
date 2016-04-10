@@ -287,7 +287,9 @@ kifuToTable kifu =
       | kifu =
         { nextKifu
           | blackPlayer = kifu.blackPlayer
+          , blackUid = kifu.blackUid
           , whitePlayer = kifu.whitePlayer
+          , whiteUid = kifu.whiteUid
         }
     }
 

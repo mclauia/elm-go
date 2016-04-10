@@ -56,10 +56,11 @@ firebase_test : String
 firebase_test = "https://mc.firebaseio.com/"
 
 firebaseUrl : String
---firebaseUrl = firebase_test
-firebaseUrl = firebase_foreign
+firebaseUrl = firebase_test
+--firebaseUrl = firebase_foreign
 
-firebaseGoban = ElmFire.fromUrl firebaseUrl
+firebaseAuth = ElmFire.fromUrl firebaseUrl
+firebaseGoban = ElmFire.fromUrl (firebaseUrl ++ "kifus")
 
 --------------------------------------------------------------------------------
 
@@ -136,7 +137,7 @@ type alias GuiAddress = Address GuiEvent
 (initialTask, inputKifus) =
   ElmFire.Dict.mirror syncConfig
 
-initAuth = Auth.getAuth firebaseGoban |> initialLogin
+initAuth = Auth.getAuth firebaseAuth |> initialLogin
 
 initialEffect : Effects Action
 initialEffect = Effects.batch
@@ -203,7 +204,7 @@ updateState action model =
           , Effects.none
           )
         Just auth ->
-          ( { model | userAuth = Just auth }
+          ( { model | userAuth = log "auth" (Just auth) }
           , Effects.none
           )
 
@@ -281,9 +282,9 @@ updateState action model =
               }
         }
       , Auth.authenticate
-          firebaseGoban
+          firebaseAuth
           []
-          (Auth.withPassword (log "user" username) (log "pass" password))
+          (Auth.withPassword username password)
           |> login
       )
 

@@ -13231,20 +13231,28 @@ Elm.Kifu.make = function (_elm) {
    var encodeKifu = function (kifu) {
       return $Json$Encode.object(_U.list([{ctor: "_Tuple2",_0: "moves",_1: encodeMoves(kifu.moves)}
                                          ,{ctor: "_Tuple2",_0: "blackPlayer",_1: $Json$Encode.string(kifu.blackPlayer)}
-                                         ,{ctor: "_Tuple2",_0: "whitePlayer",_1: $Json$Encode.string(kifu.whitePlayer)}]));
+                                         ,{ctor: "_Tuple2",_0: "blackUid",_1: $Json$Encode.string(kifu.blackUid)}
+                                         ,{ctor: "_Tuple2",_0: "whitePlayer",_1: $Json$Encode.string(kifu.whitePlayer)}
+                                         ,{ctor: "_Tuple2",_0: "whiteUid",_1: $Json$Encode.string(kifu.whiteUid)}]));
    };
    var updateKifu = F2(function (kifu,location) {    return _U.update(kifu,{moves: A2($List._op["::"],location,kifu.moves)});});
-   var Kifu = F3(function (a,b,c) {    return {moves: a,blackPlayer: b,whitePlayer: c};});
-   var initialKifu = A3(Kifu,_U.list([]),"anonymous / 無名","anonymous / 無名");
+   var Kifu = F5(function (a,b,c,d,e) {    return {moves: a,blackPlayer: b,blackUid: c,whitePlayer: d,whiteUid: e};});
+   var initialKifu = A5(Kifu,_U.list([]),"anonymous / 無名","","anonymous / 無名","");
    var decodeKifu = A4($Json$Decode$Pipeline.optional,
+   "whiteUid",
+   $Json$Decode.string,
+   "",
+   A3($Json$Decode$Pipeline.required,
    "whitePlayer",
    $Json$Decode.string,
-   "",
    A4($Json$Decode$Pipeline.optional,
-   "blackPlayer",
+   "blackUid",
    $Json$Decode.string,
    "",
-   A4($Json$Decode$Pipeline.optional,"moves",decodeMoves,_U.list([]),$Json$Decode$Pipeline.decode(Kifu))));
+   A3($Json$Decode$Pipeline.required,
+   "blackPlayer",
+   $Json$Decode.string,
+   A3($Json$Decode$Pipeline.required,"moves",decodeMoves,$Json$Decode$Pipeline.decode(Kifu))))));
    return _elm.Kifu.values = {_op: _op
                              ,Kifu: Kifu
                              ,initialKifu: initialKifu
@@ -13377,7 +13385,8 @@ Elm.Table.make = function (_elm) {
    var kifuToTable = function (kifu) {
       var table = A3($List.foldr,F2(function (location,previousTable) {    return A2(attemptMove,previousTable,location);}),initialTable,kifu.moves);
       var nextKifu = table.kifu;
-      return _U.update(table,{kifu: _U.update(nextKifu,{blackPlayer: kifu.blackPlayer,whitePlayer: kifu.whitePlayer})});
+      return _U.update(table,
+      {kifu: _U.update(nextKifu,{blackPlayer: kifu.blackPlayer,blackUid: kifu.blackUid,whitePlayer: kifu.whitePlayer,whiteUid: kifu.whiteUid})});
    };
    var undoMove = function (table) {
       var kifu = table.kifu;
@@ -13733,10 +13742,10 @@ Elm.Main.make = function (_elm) {
    var LoginState = F2(function (a,b) {    return {username: a,password: b};});
    var Model = F4(function (a,b,c,d) {    return {kifus: a,selectedKifuId: b,loginForm: c,userAuth: d};});
    var firebase_test = "https://mc.firebaseio.com/";
-   var firebase_foreign = "https://elm-goban.firebaseio.com/";
-   var firebaseUrl = firebase_foreign;
-   var firebaseGoban = $ElmFire.fromUrl(firebaseUrl);
-   var initAuth = initialLogin($ElmFire$Auth.getAuth(firebaseGoban));
+   var firebaseUrl = firebase_test;
+   var firebaseAuth = $ElmFire.fromUrl(firebaseUrl);
+   var initAuth = initialLogin($ElmFire$Auth.getAuth(firebaseAuth));
+   var firebaseGoban = $ElmFire.fromUrl(A2($Basics._op["++"],firebaseUrl,"kifus"));
    var syncConfig = {location: firebaseGoban,orderOptions: $ElmFire.noOrder,encoder: $Kifu.encodeKifu,decoder: $Kifu.decodeKifu};
    var _p7 = $ElmFire$Dict.mirror(syncConfig);
    var initialTask = _p7._0;
@@ -13750,7 +13759,7 @@ Elm.Main.make = function (_elm) {
            if (_p9.ctor === "Nothing") {
                  return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
               } else {
-                 return {ctor: "_Tuple2",_0: _U.update(model,{userAuth: $Maybe.Just(_p9._0)}),_1: $Effects.none};
+                 return {ctor: "_Tuple2",_0: _U.update(model,{userAuth: A2($Debug.log,"auth",$Maybe.Just(_p9._0))}),_1: $Effects.none};
               }
          case "FromEffect": return {ctor: "_Tuple2",_0: model,_1: $Effects.none};
          case "FromServer": return {ctor: "_Tuple2",_0: _U.update(model,{kifus: _p8._0}),_1: $Effects.none};
@@ -13780,10 +13789,7 @@ Elm.Main.make = function (_elm) {
                                       $Maybe.map(function (kifu) {    return function (_) {    return _.kifu;}($Table.undoMove($Table.kifuToTable(kifu)));})))};
               case "Login": return {ctor: "_Tuple2"
                                    ,_0: _U.update(model,{loginForm: {username: model.loginForm.username,password: ""}})
-                                   ,_1: login(A3($ElmFire$Auth.authenticate,
-                                   firebaseGoban,
-                                   _U.list([]),
-                                   A2($ElmFire$Auth.withPassword,A2($Debug.log,"user",_p8._0._0),A2($Debug.log,"pass",_p8._0._1))))};
+                                   ,_1: login(A3($ElmFire$Auth.authenticate,firebaseAuth,_U.list([]),A2($ElmFire$Auth.withPassword,_p8._0._0,_p8._0._1)))};
               default: var _p12 = _p8._0._1;
                 var loginForm = model.loginForm;
                 var updatedLoginFormState = function () {
@@ -13803,10 +13809,12 @@ Elm.Main.make = function (_elm) {
    var app = $StartApp.start(config);
    var runEffects = Elm.Native.Task.make(_elm).performSignal("runEffects",app.tasks);
    var main = app.html;
+   var firebase_foreign = "https://elm-goban.firebaseio.com/";
    return _elm.Main.values = {_op: _op
                              ,firebase_foreign: firebase_foreign
                              ,firebase_test: firebase_test
                              ,firebaseUrl: firebaseUrl
+                             ,firebaseAuth: firebaseAuth
                              ,firebaseGoban: firebaseGoban
                              ,config: config
                              ,app: app
