@@ -416,7 +416,7 @@ getCaptures location board player =
         not <| doesGroupHaveLiberties enemyGroup newBoard
       ) enemyGroups
   in
-    concatMap (\group -> group) enemyGroupsWithoutLiberties
+    concat enemyGroupsWithoutLiberties
       |> Set.fromList
       |> Set.toList
 
@@ -570,14 +570,14 @@ drawPointLines : Location -> Int -> List Html
 drawPointLines location boardSize =
   let
     isNorthEdge = row location == 0
-    isEastEdge = row location == boardSize - 1
-    isSouthEdge = col location == 0
-    isWestEdge = col location == boardSize - 1
+    isSouthEdge = row location == boardSize - 1
+    isWestEdge = col location == 0
+    isEastEdge = col location == boardSize - 1
   in
     [ div [ class (if not isNorthEdge then "north" else "") ] []
-    , div [ class (if not isEastEdge then "south" else "") ] []
-    , div [ class (if not isSouthEdge then "west" else "") ] []
-    , div [ class (if not isWestEdge then "east" else "") ] []
+    , div [ class (if not isSouthEdge then "south" else "") ] []
+    , div [ class (if not isWestEdge then "west" else "") ] []
+    , div [ class (if not isEastEdge then "east" else "") ] []
     , div [ class (if isStarPoint location boardSize then "starPoint" else "") ] []
     ]
 
