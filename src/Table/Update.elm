@@ -1,51 +1,20 @@
-module Table where
+module Table.Update where
 
--- Lib modules
+import Table.Model exposing (initialTable, Group, Board, Table, Player(White, Black), Point(Liberty, WhiteStone, BlackStone))
+
+import Kifu.Update exposing (updateKifu)
+import Kifu.Model exposing (Kifu, initialKifu)
+import Utils exposing (toMmSs)
+
 import Array exposing (Array)
 import Debug exposing (log)
 import Effects
 import List exposing (..)
 import Matrix exposing (Matrix, Location, loc, row, col)
 import Set exposing (Set)
-import Time exposing (Time, every, second)
 
 
--- App modules
-import Kifu exposing (Kifu, initialKifu)
-import Utils exposing (toMmSs)
-
-
-type Player = Black | White
-
-type Point = BlackStone | WhiteStone | Liberty
-
-type alias Board = Matrix Point
-
-type alias Group = List Location
-
-
-type alias Table =
-  { board : Board
-  , currentPlayer : Player
-  , currentMove : Int
-  , whiteCaptures : Int
-  , blackCaptures : Int
-  , kifu : Kifu -- all of the above are functions of the kifu
-  }
-
-initialBoard = (Matrix.square 19 (\_ -> Liberty))
-
-initialTable =
-  Table
-    initialBoard
-    Black
-    1
-    0
-    0
-    initialKifu
-
-
-{------------- UPDATE -------------}
+{-----------------------------------------------------------------------------}
 
 
 {-| Get all neighboring locations -}
@@ -137,7 +106,7 @@ attemptMove table location =
           , currentMove = table.currentMove + 1
           , blackCaptures = table.blackCaptures + blackCaptures
           , whiteCaptures = table.whiteCaptures + whiteCaptures
-          , kifu = Kifu.updateKifu table.kifu location
+          , kifu = updateKifu table.kifu location
         }
       else
         table

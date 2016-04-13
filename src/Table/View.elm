@@ -1,23 +1,21 @@
-module TableView where
+module Table.View where
+
+import Table.Model as Table exposing (Table, Board, Point, Player)
 
 import Graphics.Element exposing (image)
 import Html exposing (a, button, div, hr, h1, h2, h3, h4, p, text, small, Html, fromElement)
 import Html.Events exposing (onClick)
 import Html.Attributes exposing (class, href, style)
 import List exposing (..)
-
 import Matrix exposing (Matrix, Location, loc, row, col)
-
-import Table exposing (Table, Board, Point, Player)
-
 import Arithmetic exposing (isEven)
 
 import Debug exposing (log)
 
-{------------- VIEW -------------}
+{-----------------------------------------------------------------------------}
+
 
 type alias Style = (String, String)
-
 
 
 viewBoard address moveAction undoAction table =
